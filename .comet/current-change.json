@@ -1,6 +1,6 @@
 {
   "schema": "comet.selection.v2",
   "workflow": "native",
-  "change": "npi-core",
+  "change": "npi-providers",
   "branch": null
 }

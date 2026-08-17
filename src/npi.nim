@@ -12,6 +12,7 @@ type
   CliArgs = object
     prompt*: string
     printMode*: bool
+    provider*: string
     model*: string
     baseUrl*: string
     apiKey*: string
@@ -26,9 +27,13 @@ type
     agent*: Agent
 
 proc parseArgs(argv: seq[string]): CliArgs =
-  result.model = getEnv("NPI_MODEL", "gpt-4o-mini")
+  result.provider = getEnv("NPI_PROVIDER", "openai")
+  result.model = getEnv("NPI_MODEL", if result.provider == "anthropic": "claude-sonnet-4-5" else: "gpt-4o-mini")
   result.baseUrl = getEnv("NPI_BASE_URL", "")
-  result.apiKey = getEnv("OPENAI_API_KEY", getEnv("NPI_API_KEY", ""))
+  result.apiKey = if result.provider == "anthropic":
+      getEnv("ANTHROPIC_API_KEY", getEnv("NPI_API_KEY", ""))
+    else:
+      getEnv("OPENAI_API_KEY", getEnv("NPI_API_KEY", ""))
   result.sessionDir = getEnv("NPI_SESSION_DIR", os.getCurrentDir() / ".npi/sessions")
   result.maxIterations = 10
   var positional: seq[string] = @[]
@@ -40,6 +45,8 @@ proc parseArgs(argv: seq[string]): CliArgs =
     of "-r": result.resume = true
     of "--no-session": result.noSession = true
     of "--list-models": result.listModels = true
+    of "--provider":
+      inc i; if i < argv.len: result.provider = argv[i]
     of "--model":
       inc i; if i < argv.len: result.model = argv[i]
     of "--base-url":
@@ -54,14 +61,16 @@ proc parseArgs(argv: seq[string]): CliArgs =
   npi -r                    恢复最近会话（进入 TUI/REPL）
   npi "指令"                带参数：print 完成后进入交互
   npi                       TUI 全屏交互；stdin 非 TTY 退化为 REPL
+  npi --provider anthropic  使用 Anthropic (Claude)
   npi --list-models         列出可用模型（简表）
 
 选项:
   -p                 print 模式，不进入交互
   -r                 恢复最近会话
+  --provider <p>     openai|anthropic (默认 openai 或 $NPI_PROVIDER)
   --model <id>       模型 (默认 gpt-4o-mini 或 $NPI_MODEL)
-  --base-url <url>   OpenAI 兼容 base url (默认 $NPI_BASE_URL)
-  --api-key <key>    API key (默认 $OPENAI_API_KEY)
+  --base-url <url>   OpenAI/Anthropic 兼容 base url (默认 $NPI_BASE_URL)
+  --api-key <key>    API key (默认 $OPENAI_API_KEY / $ANTHROPIC_API_KEY)
   --no-session       不落盘会话
   -h, --help         帮助
 """)
@@ -267,6 +276,7 @@ proc main() =
   agent.setSystemPrompt(systemPrompt(cwd))
 
   let client = newLlmClient(ClientOptions(
+    provider: args.provider,
     apiKey: args.apiKey, baseUrl: args.baseUrl,
     model: args.model, timeoutMs: 300000))
   let driver = AgentDriver(client: client, agent: agent)
