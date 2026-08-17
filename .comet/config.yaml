@@ -1,0 +1,20 @@
+schema: comet.project.v1
+default_workflow: native
+workflows:
+  - native
+ambient_resume: true
+native:
+  artifact_root: docs
+  language: zh-CN
+  clarification_mode: sequential
+  archive_confirmation: automatic
+  max_verify_failures: 5
+  snapshot:
+    include:
+      - "**/*"
+    exclude:
+      - .agents/skills/**
+      - .pi/skills/**
+    max_files: 10000
+    max_total_bytes: 268435456
+    max_duration_ms: 60000

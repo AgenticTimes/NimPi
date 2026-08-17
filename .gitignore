@@ -1,0 +1,4 @@
+.npi/
+npi
+*.o
+*.jsonl
