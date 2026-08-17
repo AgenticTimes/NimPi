@@ -1,0 +1,40 @@
+{
+  "schema": "comet.native.local-execution.v4",
+  "change": "npi-core",
+  "basedOnStateVersion": 17,
+  "workspace": {
+    "projectRoot": "/Users/meetai/source/pi/npi",
+    "worktreeRoot": "/Users/meetai/source/pi/npi",
+    "branch": "master"
+  },
+  "execution": {
+    "operationId": "80276a0b-9ec6-4200-b48d-fecc12909bbd",
+    "stage": "verifying",
+    "actor": "verifier",
+    "executionId": "skill-coordinated:verifier:6143c53c-84c1-4db0-b398-189439b2b807",
+    "status": "running",
+    "startedAt": "2026-08-17T23:38:59.382Z",
+    "requestCheckRounds": 0
+  },
+  "checks": [
+    {
+      "id": "npi-unit-tests",
+      "name": "NPI 核心单元测试",
+      "operationId": "80276a0b-9ec6-4200-b48d-fecc12909bbd",
+      "status": "interrupted",
+      "repeatable": true,
+      "timeoutMs": 120000,
+      "executionCount": 1,
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "export PATH=/Users/meetai/.nimble/bin:$PATH; cd /Users/meetai/source/pi/npi && /Users/meetai/.nimble/bin/nim c -r --hints:off --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67 -o:/tmp/npi_verifier_test tests/test_core.nim"
+      ],
+      "cwd": "/Users/meetai/source/pi/npi/project",
+      "exitCode": -2,
+      "startedAt": "2026-08-17T23:38:59.242Z",
+      "completedAt": "2026-08-17T23:38:59.246Z",
+      "log": "logs/checks/ad9b8f7a-5fa0-4144-b2fa-d63177e12473-npi-unit-tests.log"
+    }
+  ]
+}
