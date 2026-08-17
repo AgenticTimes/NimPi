@@ -1,29 +1,128 @@
 schema: comet.native.v4
 name: npi-providers
 language: zh-CN
-phase: shape
+phase: verify
 status: active
-state_version: 1
+state_version: 3
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: create
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-providers
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: verify-ready
   goal_cycle: 1
-  iteration: 0
+  iteration: 1
   attempt: 0
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: run-required-checks-and-dispatch-verifier
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 增加第二家 LLM provider（Anthropic），与现有 OpenAI 兼容 provider 并存、可切换。
+    result: pending
+    reason: null
+  - id: A2
+    source: specs/core/spec.md
+    text: "`LlmClient` 抽象 provider 类型：`openai` 与 `anthropic`"
+    result: pending
+    reason: null
+  - id: A3
+    source: specs/core/spec.md
+    text: Anthropic Messages API 流式（SSE `content_block_delta`），支持文本与 `tool_use` 工具调用
+    result: pending
+    reason: null
+  - id: A4
+    source: specs/core/spec.md
+    text: CLI `--provider anthropic` 与 `NPI_PROVIDER` 环境变量切换
+    result: pending
+    reason: null
+  - id: A5
+    source: specs/core/spec.md
+    text: 复用现有 agent 循环/工具/会话，不改动其接口
+    result: pending
+    reason: null
+  - id: A6
+    source: specs/core/spec.md
+    text: "[ ] `--provider anthropic` 可切换，默认仍为 openai"
+    result: pending
+    reason: null
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] Anthropic 流式文本解析（content_block_delta text_delta）"
+    result: pending
+    reason: null
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] Anthropic `tool_use` 工具调用可被 agent 循环执行并回填 tool_result"
+    result: pending
+    reason: null
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 用 mock Anthropic SSE 验证端到端 agent 循环 2 轮"
+    result: pending
+    reason: null
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] 现有单元测试仍全绿"
+    result: pending
+    reason: null
+builder_handoff:
+  candidate_id: 35edba77-06e6-4528-8608-c2a575c16617
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:4b9e1db3-13cc-4592-b3a0-a01aeff192d2
+  iteration: 1
+  summary:
+    text: 新增 Anthropic provider：LlmClient 增加 provider 字段并分派；Anthropic Messages API
+      流式解析（文本+tool_use），tool_result 正确回填；--provider/NPI_PROVIDER 切换（默认 openai）。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 9 单测全绿（含 2 个 anthropic wire 测试）
+        truncated: false
+    - name:
+        text: anthropic-mock-e2e
+        truncated: false
+      result: passed
+      note:
+        text: mock Anthropic SSE 端到端：文本→read工具→tool_result回填→最终文本，请求体协议正确
+        truncated: false
+    - name:
+        text: openai-regression
+        truncated: false
+      result: passed
+      note:
+        text: 默认 provider 仍 openai，现有行为不变
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: Gemini/Mistral 等多 provider 待后续 change
+      truncated: false
+    - text: Anthropic 仅验证 mock，未接真实 API 计费
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-17T23:46:26.448Z
 blockers: []
 verification: null
 history: []
