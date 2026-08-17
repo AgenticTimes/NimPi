@@ -31,18 +31,27 @@ type
     toolCalls*: seq[JsonNode]   ## 已有 assistant tool_calls（来自历史）
 
   ClientOptions* = object
+    provider*: string       ## "openai" | "anthropic"
     apiKey*: string
-    baseUrl*: string        ## 默认 https://api.openai.com/v1
+    baseUrl*: string
     model*: string
     timeoutMs*: int
+    anthropicVersion*: string   ## Anthropic 需要的 x-api-version 头
 
   LlmClient* = ref object
     opts*: ClientOptions
 
 proc newLlmClient*(opts: ClientOptions): LlmClient =
   result = LlmClient(opts: opts)
+  if result.opts.provider.len == 0:
+    result.opts.provider = "openai"
   if result.opts.baseUrl.len == 0:
-    result.opts.baseUrl = "https://api.openai.com/v1"
+    result.opts.baseUrl = if result.opts.provider == "anthropic":
+        "https://api.anthropic.com"
+      else:
+        "https://api.openai.com/v1"
+  if result.opts.anthropicVersion.len == 0:
+    result.opts.anthropicVersion = "2023-06-01"
 
 proc toJson*(m: ChatMessage): JsonNode =
   ## 组装成 Chat Completions 的 message 对象。
@@ -86,10 +95,160 @@ proc parseSseLine(line: string): tuple[event: string, data: string] =
   elif line.startsWith("data:"):
     result.data = line[5..^1].strip
 
+# ---------------------------------------------------------------------------
+# Anthropic Messages API：body 构造 + SSE 解析
+# ---------------------------------------------------------------------------
+
+proc chatToAnthropic(m: ChatMessage): JsonNode =
+  ## 把内部 ChatMessage 转成 Anthropic messages 数组项。
+  result = newJObject()
+  case m.role
+  of "user":
+    result["role"] = %"user"
+    result["content"] = %m.content
+  of "assistant":
+    result["role"] = %"assistant"
+    var blocks = newJArray()
+    if m.content.len > 0:
+      blocks.add %*{"type": "text", "text": m.content}
+    for tc in m.toolCalls:
+      let id = tc{"id"}.getStr("")
+      let name = tc{"function"}{"name"}.getStr("")
+      var args: JsonNode = newJObject()
+      try: args = parseJson(tc{"function"}{"arguments"}.getStr("{}"))
+      except CatchableError: args = newJObject()
+      blocks.add %*{"type": "tool_use", "id": id, "name": name, "input": args}
+    result["content"] = blocks
+  of "tool":
+    result["role"] = %"user"
+    # Anthropic tool_result 放在 user 消息的 content block
+    result["content"] = newJArray()
+    result["content"].add %*{
+      "type": "tool_result",
+      "tool_use_id": m.toolCallId,
+      "content": m.content
+    }
+  else:
+    result["role"] = %m.role
+    result["content"] = %m.content
+
+proc buildAnthropicBody*(messages: seq[ChatMessage], tools: seq[JsonNode], model: string): JsonNode =
+  result = newJObject()
+  result["model"] = %model
+  result["max_tokens"] = %4096
+  var arr = newJArray()
+  for m in messages:
+    arr.add m.chatToAnthropic()
+  result["messages"] = arr
+  if tools.len > 0:
+    var tarr = newJArray()
+    for t in tools:
+      # Anthropic 工具 schema：不需要 "type": "function" 包装
+      let f = t{"function"}
+      if not f.isNil:
+        tarr.add %*{
+          "name": f{"name"}.getStr(""),
+          "description": f{"description"}.getStr(""),
+          "input_schema": f{"parameters"}
+        }
+      else:
+        tarr.add t
+    result["tools"] = tarr
+  result["stream"] = %true
+
+proc streamAnthropic(client: LlmClient, messages: seq[ChatMessage],
+                     tools: seq[JsonNode],
+                     onEvent: proc(e: StreamPayload): void {.closure.}) {.async.} =
+  ## Anthropic Messages 流式解析：content_block_delta / content_block_start / message_delta。
+  let body = buildAnthropicBody(messages, tools, client.opts.model)
+  let http = newAsyncHttpClient(
+    headers = newHttpHeaders([
+      ("x-api-key", client.opts.apiKey),
+      ("anthropic-version", client.opts.anthropicVersion),
+      ("Content-Type", "application/json"),
+      ("Accept", "text/event-stream")
+    ]))
+  var full = ""
+  var finalStop = srStop
+  var usage = Usage()
+  # 工具调用累积
+  var toolId = ""
+  var toolName = ""
+  var toolArgs = ""
+  var inTool = false
+  try:
+    let resp = await http.post(client.opts.baseUrl & "/v1/messages", body = $body)
+    if not resp.status.startsWith("200"):
+      raise newException(LlmError, "HTTP " & resp.status)
+    let strm = resp.bodyStream
+    while true:
+      let (hasData, chunk) = await read(strm)
+      if not hasData or chunk.len == 0: break
+      full.add chunk
+      while true:
+        let nl = full.find('\n')
+        if nl < 0: break
+        let cur = full[0 ..< nl]
+        full = full[nl+1 .. ^1]
+        let (ev, data) = parseSseLine(cur)
+        if ev == "" and data.len == 0: continue
+        if data == "[DONE]": break
+        var j: JsonNode
+        try: j = parseJson(data)
+        except CatchableError: continue
+        let jt = j{"type"}.getStr("")
+        case jt
+        of "content_block_delta":
+          let d = j{"delta"}
+          let dt = d{"type"}.getStr("")
+          if dt == "text_delta":
+            let tx = d{"text"}.getStr("")
+            if tx.len > 0:
+              onEvent(StreamPayload(kind: seTextDelta, textDelta: tx))
+          elif dt == "input_json_delta":
+            toolArgs.add d{"partial_json"}.getStr("")
+        of "content_block_start":
+          let cb = j{"content_block"}
+          if not cb.isNil and cb{"type"}.getStr("") == "tool_use":
+            toolId = cb{"id"}.getStr("")
+            toolName = cb{"name"}.getStr("")
+            var temp: JsonNode
+            try: temp = cb{"input"}
+            except CatchableError: discard
+            inTool = true
+            toolArgs = ""
+        of "message_delta":
+          let stop = j{"delta"}{"stop_reason"}.getStr("")
+          case stop
+          of "tool_use": finalStop = srToolUse
+          of "max_tokens": finalStop = srLength
+          of "end_turn": finalStop = srStop
+          else: finalStop = srStop
+          let u = j{"usage"}
+          if not u.isNil:
+            usage.input = u{"input_tokens"}.getInt(0)
+            usage.output = u{"output_tokens"}.getInt(0)
+            usage.totalTokens = usage.input + usage.output
+        else: discard
+    if inTool:
+      var args: JsonNode = newJObject()
+      if toolArgs.len > 0:
+        try: args = parseJson(toolArgs)
+        except CatchableError: args = newJObject()
+      onEvent(StreamPayload(kind: seToolCallStart, toolId: toolId,
+                            toolName: toolName, toolArgs: args))
+    onEvent(StreamPayload(kind: seEnd, stopReason: finalStop, usage: usage))
+  finally:
+    http.close()
+
 proc stream*(client: LlmClient, messages: seq[ChatMessage],
              tools: seq[JsonNode],
              onEvent: proc(e: StreamPayload): void {.closure.}) {.async.} =
-  ## 发起流式请求，逐块解析 SSE，把增量事件交给 onEvent 回调。
+  ## 发起流式请求，按 provider 分派到对应解析。
+  if client.opts.provider == "anthropic":
+    await client.streamAnthropic(messages, tools, onEvent)
+    return
+  # ---- OpenAI 兼容（Chat Completions）----
   let model = client.opts.model
   let body = buildBody(messages, tools, model)
   let http = newAsyncHttpClient(
