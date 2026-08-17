@@ -23,8 +23,22 @@ npi -p "修复这个 bug"                          # print：流式输出后退�
 npi -r                                         # 恢复最近会话
 npi                                            # 默认 TUI；stdin 非 TTY 退化为 REPL
 npi --model gpt-4o-mini --base-url https://api.openai.com/v1 "你好"
-npi --api-key sk-...                           # 覆盖 OPENAI_API_KEY
+npi --provider anthropic "用 Claude 处理"   # Anthropic (需 ANTHROPIC_API_KEY)
+npi --api-key sk-...                           # 覆盖 OPENAI_API_KEY / ANTHROPIC_API_KEY
 npi --no-session                               # 不落盘
+```
+
+## Provider
+
+支持两家 LLM provider，用 `--provider` 或环境变量 `NPI_PROVIDER` 切换：
+
+| provider | 默认模型 | API key | endpoint |
+|----------|----------|---------|----------|
+| `openai`（默认） | `gpt-4o-mini` | `OPENAI_API_KEY` | OpenAI Chat Completions |
+| `anthropic` | `claude-sonnet-4-5` | `ANTHROPIC_API_KEY` | Anthropic Messages API (`/v1/messages`) |
+
+```bash
+NPI_PROVIDER=anthropic npi -p "修复这个 bug"
 ```
 
 TUI 交互：输入 Enter 发送（流式渲染），↑/↓ 滚动，Ctrl+C 退出。
