@@ -1,32 +1,193 @@
 schema: comet.native.v4
 name: npi-binary
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-binary
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 的 grep/read 工具实现二进制文件检测，跳过二进制避免乱码/爆输出。
+    result: passed
+    reason:
+      text: grep/read 二进制检测避免乱码
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/binary.nim`："
+    result: passed
+    reason:
+      text: src/binary.nim：isBinaryContent/isBinaryFile
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`isBinaryContent(content, sampleLen)`：检测 NUL 字节或控制字符比例超阈值"
+    result: passed
+    reason:
+      text: NUL 字节检测
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`isBinaryFile(path)`：读前 sample 检测"
+    result: passed
+    reason:
+      text: 控制字符比例超阈值检测
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: 接入 grepFile：二进制文件跳过（不输出乱码）
+    result: passed
+    reason:
+      text: 纯文本非二进制
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 接入 read：二进制提示（可选）
+    result: passed
+    reason:
+      text: grepFile 跳过二进制
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] NUL 字节检测为二进制"
+    result: passed
+    reason:
+      text: NUL 检测（单测）
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] 控制字符比例超阈值检测"
+    result: passed
+    reason:
+      text: 纯文本判定（单测）
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 纯文本非二进制"
+    result: passed
+    reason:
+      text: 控制字符比例（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] grepFile 跳过二进制"
+    result: passed
+    reason:
+      text: grepFile 跳过（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 83 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 8a506849-f88a-4e60-b6aa-bf78958b0049
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:59817b62-e3b1-444f-8729-07d075804b2a
+  iteration: 1
+  summary:
+    text: 实现二进制检测：isBinaryContent（NUL 字节 >1 或控制字符比例 >0.30，采样 1024
+      字节）、isBinaryFile（读前 sample 检测）；接入 grepFile 跳过二进制文件避免乱码输出。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 83 单测全绿（含 5 个 binary 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 完整 magic-number 检测待后续
+      truncated: false
+    - text: 图片/媒体处理待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T15:56:08.688Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: 8a506849-f88a-4e60-b6aa-bf78958b0049
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:053523eb-c7a4-42c4-ba1b-00607c82b8a9
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-bin-ut
+      name:
+        text: NPI Binary 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_bin_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 2419
+  summary:
+    text: NPI Binary 验收全过：comet Runtime 用 brew nim 实跑单测 83 OK，grep 已跳过二进制文件。
+    truncated: false
+  risks:
+    - text: 完整 magic-number 检测待后续
+      truncated: false
+    - text: 图片/媒体处理待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T15:56:23.328Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Binary 验收全过：comet Runtime 用 brew nim 实跑单测 83 OK，grep 已跳过二进制文件。
+      truncated: false
+    completed_at: 2026-08-18T15:56:23.328Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +198,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-18T15:54:24.878Z
