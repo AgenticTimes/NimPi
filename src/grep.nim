@@ -3,6 +3,7 @@
 
 import std/[os, strutils, re, algorithm]
 import ./gitignore
+import ./binary
 
 const
   GrepMaxLineLength = 500
@@ -47,7 +48,9 @@ proc makeMatcher(pattern: string, caseSensitive: bool, fixedString: bool): proc(
       return pos >= 0
 
 proc grepFile*(path: string, opts: GrepOptions): seq[GrepMatch] =
-  ## 按行搜索单个文件，返回匹配 + context 行。
+  ## 按行搜索单个文件，返回匹配 + context 行。二进制文件跳过。
+  if isBinaryFile(path):
+    return
   var content = ""
   try:
     content = readFile(path)
