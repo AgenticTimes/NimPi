@@ -19,6 +19,7 @@ import ../src/messages
 import ../src/binary
 import ../src/bashtimeout
 import ../src/pathutils
+import ../src/eventbus
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -698,3 +699,47 @@ suite "glob":
     let r = findPath("tests/fixtures/finddir", FindOptions(pattern: "*.{txt,log}"))
     check "a.txt" in r
     check "b.log" in r
+
+suite "eventbus":
+  test "on/emit 订阅发布":
+    let bus = newEventBus()
+    var got = ""
+    discard bus.on("chat", proc(d: string) = got = d)
+    bus.emit("chat", "hello")
+    check got == "hello"
+
+  test "取消订阅函数":
+    let bus = newEventBus()
+    var count = 0
+    let cancel = bus.on("x", proc(d: string) = inc count)
+    bus.emit("x", "")
+    check count == 1
+    cancel()
+    bus.emit("x", "")
+    check count == 1   # 已取消不再触发
+
+  test "handler 异常隔离":
+    let bus = newEventBus()
+    var got = ""
+    discard bus.on("y", proc(d: string) = raise newException(ValueError, "boom"))
+    discard bus.on("y", proc(d: string) = got = "second")
+    bus.emit("y", "")   # 第一个 handler 崩，第二个仍执行
+    check got == "second"
+
+  test "clear 清空":
+    let bus = newEventBus()
+    var count = 0
+    discard bus.on("z", proc(d: string) = inc count)
+    bus.clear()
+    bus.emit("z", "")
+    check count == 0
+
+  test "不同通道互不影响":
+    let bus = newEventBus()
+    var a = ""
+    var b = ""
+    discard bus.on("ch1", proc(d: string) = a = d)
+    discard bus.on("ch2", proc(d: string) = b = d)
+    bus.emit("ch1", "A")
+    check a == "A"
+    check b == ""      # ch2 未收到
