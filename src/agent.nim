@@ -6,6 +6,7 @@ import ./types
 import ./compaction
 import ./truncate
 import ./shell
+import ./grep
 
 type
   ToolResultRaw* = tuple
@@ -107,11 +108,23 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
       return ("", name, "error: " & e.msg, true)
   of "grep":
     let pattern = args{"pattern"}.getStr("")
-    let path = args{"path"}.getStr("")
+    let path = args{"path"}.getStr(".")
+    if pattern.len == 0: return ("", name, "error: missing pattern", true)
     try:
-      let cmd = "grep -rn '" & pattern.replace("'", "'\\''") & "' " & path & " 2>/dev/null | head -100"
-      let (outp, _) = execCmdEx(cmd, options = {poUsePath})
-      return ("", name, if outp.len == 0: "no matches" else: outp, false)
+      var opts = defaultGrepOptions()
+      opts.pattern = pattern
+      opts.fixedString = false   # 正则（对齐 pi 默认）
+      if args{"caseSensitive"}.getBool: opts.caseSensitive = true
+      let ctx = args{"context"}.getInt(0)
+      if ctx > 0: opts.context = ctx
+      let m = grepPath(path, opts)
+      var text = ""
+      for x in m:
+        if x.lineType == "context":
+          text.add "  " & x.text & "\n"
+        else:
+          text.add x.text & "\n"
+      return ("", name, if text.len == 0: "no matches" else: text, false)
     except CatchableError as e:
       return ("", name, "error: " & e.msg, true)
   of "find":

@@ -11,6 +11,7 @@ import ../src/templates
 import ../src/modelresolver
 import ../src/truncate
 import ../src/shell
+import ../src/grep
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -370,3 +371,41 @@ suite "shell":
   test "sanitizeShellOutput 清理链":
     check sanitizeShellOutput("\x1b[31mhello\x1b[0m") == "hello"
     check sanitizeShellOutput("a\rb") == "ab"   # 去 \r
+
+suite "grep":
+  test "grepFile fixed 匹配":
+    var o = defaultGrepOptions()
+    o.pattern = "banana"
+    let m = grepFile("tests/fixtures/grepdir/fruit.txt", o)
+    check m.len == 1
+    check "banana" in m[0].text
+
+  test "grepPath 遍历目录返回 path:line:text":
+    var o = defaultGrepOptions()
+    o.pattern = "hello"
+    let m = grepPath("tests/fixtures/grepdir", o)
+    # 应匹配 fruit.txt? no (hello 不在 fruit)，sub/hello.txt 有 2 处
+    var hasHello = false
+    for x in m:
+      if "sub/hello.txt:" in x.text and ":hello" in x.text:
+        hasHello = true
+    check hasHello
+
+  test "context 上下文行":
+    var o = defaultGrepOptions()
+    o.pattern = "START"
+    o.context = 1
+    let m = grepFile("tests/fixtures/grepdir/ctx.txt", o)
+    var lineTypes: seq[string] = @[]
+    for x in m: lineTypes.add x.lineType
+    check "match" in lineTypes
+    check "context" in lineTypes
+
+  test "行截断 GREP_MAX_LINE_LENGTH":
+    check truncateLine("x" & repeat("y", 600)).endsWith("[truncated]")
+    check truncateLine("short") == "short"
+
+  test "无匹配返回空":
+    var o = defaultGrepOptions()
+    o.pattern = "zzz-no-match"
+    check grepFile("tests/fixtures/grepdir/fruit.txt", o).len == 0
