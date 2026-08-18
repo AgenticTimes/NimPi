@@ -16,6 +16,7 @@ import ../src/find
 import ../src/lsdir
 import ../src/gitignore
 import ../src/messages
+import ../src/binary
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -597,3 +598,29 @@ suite "convert":
     check r.len == 2
     check r[0].role == "user"
     check r[1].role == "tool"
+
+suite "binary":
+  test "NUL 字节检测二进制":
+    check isBinaryContent("a\x00b\x00c")
+    check isBinaryContent("\x00\x00\x00")
+
+  test "纯文本非二进制":
+    check not isBinaryContent("hello world\nplain text")
+    check not isBinaryContent("tab\there\nnewline\nhere")
+
+  test "控制字符比例超阈值检测":
+    check isBinaryContent("\x01\x02\x03\x04\x05ctrl")
+
+  test "isBinaryFile 文件检测":
+    check isBinaryFile("tests/fixtures/bindir/data.bin")
+    check not isBinaryFile("tests/fixtures/bindir/plain.txt")
+
+  test "grepFile 跳过二进制":
+    var o = defaultGrepOptions()
+    o.pattern = "bin"
+    # data.bin 含 "bin" 文本但二进制，应被跳过（无匹配输出）
+    check grepFile("tests/fixtures/bindir/data.bin", o).len == 0
+    # 纯文本正常匹配
+    var o2 = defaultGrepOptions()
+    o2.pattern = "plain"
+    check grepFile("tests/fixtures/bindir/plain.txt", o2).len == 1
