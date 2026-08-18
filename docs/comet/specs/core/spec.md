@@ -1,46 +1,21 @@
-<<<<<<< HEAD
-# NPI Core — Specification
+# NPI Gemini — Specification
 
 ## 目标
-在 `npi/` 用 Nim 实现极简编码 agent，对齐 `mpi`（MoonBit）主链路，带 TUI。
+为 npi 增加 Google Gemini provider，支持流式推理与函数调用，验证 provider 抽象的三家横向扩展。
 
 ## 范围
-- CLI：`-p`(print) / 默认 TUI / stdin 非 TTY 退化为 REPL；`-r` 恢复会话
-- LLM：OpenAI 兼容流式（SSE 解析），多轮工具调用
-- 工具：read / write / edit / bash / ls / grep / find
-- 会话：JSONL 落盘（`.npi/sessions/`）
-- TUI：illwill 全屏，消息区 + 输入 + 滚动
+- `LlmClient` provider 增加 `gemini` 分支
+- Gemini API `generateContent` 流式（SSE/`streamGenerateContent`），支持 content/functionCall
+- CLI `--provider gemini` / `NPI_PROVIDER=gemini` 切换，默认 openai
+- 复用 agent 循环/工具/会话，不改接口
 
 ## 非目标
-- 多 provider（Anthropic/Gemini）——后续迭代
-- 会话压缩 / extensions / RPC ——后续迭代
-
-## 验收
-- [ ] `npi -p "cmd"` 流式输出后退出
-- [ ] mock SSE 下 agent 循环可完成 文本→工具→结果→最终文本
-- [ ] 会话 JSONL 落盘完整（含工具调用与结果）
-- [ ] 7 个核心单测全绿
-- [ ] TUI 启动/退出不崩溃，输入可发送
-=======
-# NPI Providers — Specification
-
-## 目标
-为 npi 增加第二家 LLM provider（Anthropic），与现有 OpenAI 兼容 provider 并存、可切换。
-
-## 范围
-- `LlmClient` 抽象 provider 类型：`openai` 与 `anthropic`
-- Anthropic Messages API 流式（SSE `content_block_delta`），支持文本与 `tool_use` 工具调用
-- CLI `--provider anthropic` 与 `NPI_PROVIDER` 环境变量切换
-- 复用现有 agent 循环/工具/会话，不改动其接口
-
-## 非目标
-- Gemini / Mistral 等多 provider —— 后续 change
+- Mistral 等更多 provider —— 后续 change
 - 会话压缩 / extensions / RPC —— 后续 change
 
 ## 验收
-- [ ] `--provider anthropic` 可切换，默认仍为 openai
-- [ ] Anthropic 流式文本解析（content_block_delta text_delta）
-- [ ] Anthropic `tool_use` 工具调用可被 agent 循环执行并回填 tool_result
-- [ ] 用 mock Anthropic SSE 验证端到端 agent 循环 2 轮
-- [ ] 现有单元测试仍全绿
->>>>>>> comet/npi-providers
+- [ ] `--provider gemini` 可切换，默认仍 openai
+- [ ] Gemini 流式文本解析（text 增量）
+- [ ] Gemini `functionCall` 工具调用可执行并回填 `functionResponse`
+- [ ] mock Gemini SSE 端到端 agent 循环 2 轮
+- [ ] 现有单测仍全绿（10 项及以上）
