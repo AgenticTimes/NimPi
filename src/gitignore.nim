@@ -1,7 +1,7 @@
 ## GitIgnore：对齐 pi 的 ignore 语义（grep/find respects .gitignore）。
 ## 解析 .gitignore/.ignore/.fdignore 规则：!取反、/锚定、*、**、目录后缀。
 
-import std/[os, strutils, sequtils, re]
+import std/[os, strutils, re]
 
 type
   IgnoreRule* = object
