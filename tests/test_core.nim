@@ -6,6 +6,7 @@ import ../src/agent
 import ../src/llm
 import ../src/skills
 import ../src/compaction
+import ../src/slash
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -178,3 +179,46 @@ suite "compaction":
     let r = prepareCompaction(msgs, settings)
     check not r.compacted
     check r.cutIndex == -1
+
+suite "slash":
+  test "parseSlash 解析命令与参数":
+    let c1 = parseSlash("/quit")
+    check c1.isSlash
+    check c1.command == "quit"
+    check c1.arg == ""
+    let c2 = parseSlash("/skill  my-skill")
+    check c2.command == "skill"
+    check c2.arg == "my-skill"
+
+  test "非 / 开头不是命令":
+    let c = parseSlash("hello world")
+    check not c.isSlash
+    let c2 = parseSlash("normal question")
+    check not c2.isSlash
+
+  test "未知命令给出提示不崩溃":
+    let commands = buildCommands()
+    let r = handleSlash(commands, "/nope", proc(n: string): string = "")
+    check r.handled
+    check "未知命令" in r.output
+
+  test "/help 列出命令":
+    let commands = buildCommands()
+    let r = handleSlash(commands, "/help", proc(n: string): string = "")
+    check r.handled
+    check "quit" in r.output
+    check "help" in r.output
+    check "compact" in r.output
+    check r.output.startsWith("可用命令")
+
+  test "/quit 触发退出":
+    let commands = buildCommands()
+    let r = handleSlash(commands, "/quit", proc(n: string): string = "")
+    check r.shouldQuit
+
+  test "/model 调用 ctx":
+    let commands = buildCommands()
+    var got = ""
+    let r = handleSlash(commands, "/model", proc(n: string): string = got = n; "gpt-4o-mini")
+    check r.output == "gpt-4o-mini"
+    check got == "model"
