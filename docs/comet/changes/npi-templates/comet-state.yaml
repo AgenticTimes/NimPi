@@ -1,32 +1,229 @@
 schema: comet.native.v4
 name: npi-templates
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-templates
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 实现 prompt 模板：用户输入 `/模板名 参数` 时展开为模板内容（含占位符替换），支持默认参数与切片。
+    result: passed
+    reason:
+      text: prompt 模板实现：/模板名 参数展开为内容
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/templates.nim`："
+    result: passed
+    reason:
+      text: src/templates.nim：parseCommandArgs/substituteArgs/加载/展开
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`parseCommandArgs(str)` bash 风格解析（支持双引号/单引号）"
+    result: passed
+    reason:
+      text: parseCommandArgs bash 风格引号解析
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`substituteArgs(content, args)` 占位符替换：`$1` `$@`/`$ARGUMENTS` `${@:N}`
+      `${@:N:L}` `${N:-default}`（对齐 pi 正则语义）"
+    result: passed
+    reason:
+      text: substituteArgs $1/$@/${@:N:L}/${N:-default}
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`PromptTemplate` 类型（name/description/content/filePath）"
+    result: passed
+    reason:
+      text: PromptTemplate 类型 name/description/content/filePath
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: "`loadTemplatesFromDir`：递归发现 `.md`，解析 frontmatter(name/description) + body"
+    result: passed
+    reason:
+      text: loadTemplatesFromDir 递归发现 .md
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "`expandPromptTemplate(text, templates)`：以 `/name` 开头且命中模板则展开，否则原样返回"
+    result: passed
+    reason:
+      text: expandPromptTemplate /name 展开或原样
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: 加载源：用户级 `~/.npi/prompts/` + 项目级 `.npi/prompts/`
+    result: passed
+    reason:
+      text: 用户级/项目级 prompts 双源
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: 与 slash 系统衔接：TUI/REPL 输入 `/name ...` 若是模板则展开为对话(而非命令)
+    result: passed
+    reason:
+      text: TUI 与 REPL 集成模板展开
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] parseCommandArgs 处理空格/引号"
+    result: passed
+    reason:
+      text: parseCommandArgs 空格/引号（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] substituteArgs：$1、$@、${@:N}、${@:N:L}、${N:-default}"
+    result: passed
+    reason:
+      text: substituteArgs $1/$@/${@:N}/${@:N:L}/${N:-default}（单测）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 模板从 frontmatter+body 加载"
+    result: passed
+    reason:
+      text: 模板 frontmatter+body 加载（单测）
+      truncated: false
+  - id: A13
+    source: specs/core/spec.md
+    text: "[ ] expandPromptTemplate 命中展开、未命中原样"
+    result: passed
+    reason:
+      text: expandPromptTemplate 命中/未命中（单测）
+      truncated: false
+  - id: A14
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖参数解析/替换/展开"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 33 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 7072a742-255d-43b3-b22f-509fbb2cbe04
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:eb28a5cd-3a6c-491a-971b-3135e2bcabce
+  iteration: 1
+  summary:
+    text: 实现 prompt 模板系统：parseCommandArgs（bash
+      引号）、substituteArgs（$1/$@/${@:N:L}/${N:-default}，对齐 pi 语义）、模板
+      frontmatter+body 加载、expandPromptTemplate slash 展开；TUI/REPL 集成 /name
+      命中模板转对话。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 33 单测全绿（含 7 个 templates 测试）
+        truncated: false
+    - name:
+        text: repl-e2e
+        truncated: false
+      result: passed
+      note:
+        text: REPL /fix args 命中模板展开为对话
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: promptPaths 显式文件参数待后续
+      truncated: false
+    - text: includeDefaults 内置模板待后续
+      truncated: false
+    - text: 更多占位符变体待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T02:08:01.478Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: 7072a742-255d-43b3-b22f-509fbb2cbe04
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:8d99d975-b59a-4f78-9c98-2c0c37f1b3ff
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-tmpl-ut
+      name:
+        text: NPI Templates 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_tmpl_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 1840
+  summary:
+    text: NPI Templates 验收全过：comet Runtime 用 brew nim 实跑单测 33 OK，REPL /fix 展开为对话验证集成。
+    truncated: false
+  risks:
+    - text: promptPaths 显式文件参数待后续
+      truncated: false
+    - text: includeDefaults 内置模板待后续
+      truncated: false
+    - text: 更多占位符变体待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T02:09:38.541Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Templates 验收全过：comet Runtime 用 brew nim 实跑单测 33 OK，REPL /fix
+        展开为对话验证集成。
+      truncated: false
+    completed_at: 2026-08-18T02:09:38.541Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +234,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-18T01:47:40.135Z
