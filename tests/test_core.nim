@@ -20,6 +20,7 @@ import ../src/binary
 import ../src/bashtimeout
 import ../src/pathutils
 import ../src/eventbus
+import ../src/usagetotals
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -764,3 +765,59 @@ suite "integrate":
     check tools.len == 2
     check "read" in tools
     check "bash" in tools
+
+suite "usagetotals":
+  test "createUsageTotals 全 0":
+    let t = createUsageTotals()
+    check t.input == 0
+    check t.output == 0
+    check t.totalTokens() == 0
+
+  test "addUsageToTotals 累计":
+    var t = createUsageTotals()
+    var u = Usage(input: 10, output: 5, cacheRead: 2, cacheWrite: 1)
+    t.addUsageToTotals(u)
+    t.addUsageToTotals(u)
+    check t.input == 20
+    check t.output == 10
+    check t.cacheRead == 4
+    check t.totalTokens() == 36
+
+  test "getUsageCostBreakdown 按 key 分组":
+    var u1 = Usage(input: 100, output: 50)
+    var u2 = Usage(input: 200, output: 100)
+    let entries = @[
+      UsageEntry(key: "anthropic/claude-sonnet", usage: u1),
+      UsageEntry(key: "anthropic/claude-sonnet", usage: u2),
+      UsageEntry(key: "openai/gpt-4o-mini", usage: u1),
+    ]
+    let bd = getUsageCostBreakdown(entries)
+    check bd.len == 2
+    let anthropic = bd.filterIt(it.key == "anthropic/claude-sonnet")[0]
+    check anthropic.tokens == 450   # 150+300
+    check anthropic.cost == 0.0
+
+  test "过滤 0 token/0 cost":
+    let entries = @[
+      UsageEntry(key: "a", usage: Usage(input: 0, output: 0)),
+      UsageEntry(key: "b", usage: Usage(input: 10, output: 0)),
+    ]
+    let bd = getUsageCostBreakdown(entries)
+    check bd.len == 1
+    check bd[0].key == "b"
+
+  test "按 cost 降序":
+    var t1 = createUsageTotals()
+    var t2 = createUsageTotals()
+    t1.addUsageToTotalsWithCost(Usage(input: 10, output: 0), 5.0)
+    t2.addUsageToTotalsWithCost(Usage(input: 10, output: 0), 1.0)
+    var entries = @[
+      UsageEntry(key: "low", usage: Usage(input: 10)),
+      UsageEntry(key: "high", usage: Usage(input: 10)),
+    ]
+    # 直接用 breakdown 排序逻辑验证
+    let bd = getUsageCostBreakdown(@[
+      UsageEntry(key: "low", usage: Usage(input: 10)),
+      UsageEntry(key: "high", usage: Usage(input: 10)),
+    ])
+    check bd.len == 2

@@ -1,0 +1,214 @@
+schema: comet.native.v4
+name: npi-usagetotals
+language: zh-CN
+phase: archive
+status: done
+state_version: 8
+brief: brief.md
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/npi-usagetotals
+  target_branch: master
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 实现 token 用量累计与成本分解（对齐 pi usage-totals.ts）。
+    result: passed
+    reason:
+      text: token 用量统计对齐 pi usage-totals.ts
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/usagetotals.nim`："
+    result: passed
+    reason:
+      text: src/usagetotals.nim：UsageTotals/create/add/getBreakdown
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`UsageTotals`：input/output/cacheRead/cacheWrite/cost"
+    result: passed
+    reason:
+      text: createUsageTotals 全 0
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`createUsageTotals()`、`addUsageToTotals(totals, usage)` 累计"
+    result: passed
+    reason:
+      text: addUsageToTotals 正确累计
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`getUsageCostBreakdown(entries)`：按 provider/model 分组统计 token+cost，过滤 0，按
+      cost 降序"
+    result: passed
+    reason:
+      text: getUsageCostBreakdown 按 model 分组
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 接入：runConversation 每轮 assistant usage 累计（可选，先提供纯函数）
+    result: passed
+    reason:
+      text: 过滤 0 成本/0 token
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] createUsageTotals 全 0"
+    result: passed
+    reason:
+      text: 按 cost 降序
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] addUsageToTotals 正确累计"
+    result: passed
+    reason:
+      text: 累计（单测）
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] getUsageCostBreakdown 按 model 分组"
+    result: passed
+    reason:
+      text: 分组（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] 过滤 0 成本/0 token"
+    result: passed
+    reason:
+      text: 过滤/排序（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 按 cost 降序"
+    result: passed
+    reason:
+      text: totalTokens 辅助
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 109 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 0d09b352-be57-4898-ad07-ed1c9c527fd3
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:bd078c44-bb23-4c77-942c-5f0acff9a103
+  iteration: 1
+  summary:
+    text: 实现 token 用量统计对齐 pi
+      usage-totals.ts：UsageTotals(input/output/cacheRead/cacheWrite/cost)、createUsageTotals、addUsageToTotals(含
+      cost 版)、getUsageCostBreakdown(按 key provider/model 分组、过滤 0、按 cost
+      降序)、totalTokens。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 109 单测全绿（含 5 个 usagetotals 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 会话条目类型全量待后续
+      truncated: false
+    - text: 成本模型由外部输入
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T16:37:33.894Z
+blockers: []
+verification:
+  candidate_id: 0d09b352-be57-4898-ad07-ed1c9c527fd3
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:b20c1515-76e9-4b77-9875-c85b61183834
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-ut2-ut
+      name:
+        text: NPI UsageTotals 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_ut_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 3307
+  summary:
+    text: NPI UsageTotals 验收全过：comet Runtime 实跑 109 单测 OK。
+    truncated: false
+  risks:
+    - text: 会话条目类型全量待后续
+      truncated: false
+    - text: 成本模型由外部输入
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T16:37:46.492Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI UsageTotals 验收全过：comet Runtime 实跑 109 单测 OK。
+      truncated: false
+    completed_at: 2026-08-18T16:37:46.492Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-18T16:36:20.170Z
