@@ -1,26 +1,24 @@
-# NPI Templates — Specification
+# NPI ModelResolver — Specification
 
 ## 目标
-为 npi 实现 prompt 模板：用户输入 `/模板名 参数` 时展开为模板内容（含占位符替换），支持默认参数与切片。
+为 npi 实现模型解析与默认回退：把模型模式（`model`、`provider/model`、`model:thinking`）解析为 (model, thinkingLevel)，并支持按 provider 的默认回退。
 
 ## 范围
-- `src/templates.nim`：
-  - `parseCommandArgs(str)` bash 风格解析（支持双引号/单引号）
-  - `substituteArgs(content, args)` 占位符替换：`$1` `$@`/`$ARGUMENTS` `${@:N}` `${@:N:L}` `${N:-default}`（对齐 pi 正则语义）
-  - `PromptTemplate` 类型（name/description/content/filePath）
-  - `loadTemplatesFromDir`：递归发现 `.md`，解析 frontmatter(name/description) + body
-  - `expandPromptTemplate(text, templates)`：以 `/name` 开头且命中模板则展开，否则原样返回
-- 加载源：用户级 `~/.npi/prompts/` + 项目级 `.npi/prompts/`
-- 与 slash 系统衔接：TUI/REPL 输入 `/name ...` 若是模板则展开为对话(而非命令)
+- `src/modelresolver.nim`：
+  - `parseModelPattern(pattern)`：递归剥离 `:suffix`，返回 (model, thinkingLevel)
+  - `resolveModelSpec(pattern, provider)`：解析 user 提供的模式；无指定 provider 或未匹配用给定默认
+  - `defaultModelForProvider(provider)`：默认模型表（openai/anthropic/gemini + 通用），对齐 pi defaultModelPerProvider 子集
+- thinking level 校验：`low`/`medium`/`high`（对齐 isValidThinkingLevel）
+- 集成：CLI `--model` 解析用 parseModelPattern；未指定时按 provider 默认
 
 ## 非目标
-- promptPaths 显式文件参数 —— 后续
-- includeDefaults 内置模板 —— 后续
-- 更多占位符变体 —— 后续
+- 可用模型列表匹配/最优版本选择（alias vs dated）—— 后续 change
+- 完整 known-provider 表 —— 只含 npi 支持的 provider
+- thinking level 实际注入 —— 仅解析
 
 ## 验收
-- [ ] parseCommandArgs 处理空格/引号
-- [ ] substituteArgs：$1、$@、${@:N}、${@:N:L}、${N:-default}
-- [ ] 模板从 frontmatter+body 加载
-- [ ] expandPromptTemplate 命中展开、未命中原样
-- [ ] 单测覆盖参数解析/替换/展开
+- [ ] parseModelPattern 剥离 `:suffix`（thinking level）
+- [ ] defaultModelForProvider 返回对应默认模型
+- [ ] 无效 thinking level 回退默认并警告
+- [ ] CLI --model 用解析逻辑
+- [ ] 单测覆盖解析/默认/警告
