@@ -10,6 +10,7 @@ import ../src/slash
 import ../src/templates
 import ../src/modelresolver
 import ../src/truncate
+import ../src/shell
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -346,3 +347,26 @@ suite "truncate":
     check r.truncated
     check "line9" in r.content
     check "line0" notin r.content or r.truncated  # 头部可能被截
+
+suite "shell":
+  test "stripAnsi 移除 ANSI 颜色":
+    check stripAnsi("\x1b[31mred\x1b[0m") == "red"
+    check stripAnsi("plain text") == "plain text"
+    check stripAnsi("\x1b[1mbold\x1b[0m ok") == "bold ok"
+
+  test "stripAnsi 移除 CSI/OSC 序列":
+    check stripAnsi("x\x1b[2J y") == "x y"       # clear screen CSI
+    check stripAnsi("\x1b]0;title\x07z") == "z"   # OSC 到 BEL
+    check stripAnsi("\x1b[38;5;196mcolored\x1b[0m") == "colored"
+
+  test "sanitizeBinaryOutput 过滤控制字符":
+    check sanitizeBinaryOutput("a\x00b\x07c") == "abc"
+    check sanitizeBinaryOutput("a\x1b[31m") != "a\x1b[31m"   # 含 ESC 被处理? 实际保留(>0x1f之外的控制? 0x1b=27<=31 过滤)
+    check sanitizeBinaryOutput("a\tb\nc") == "a\tb\nc"     # tab/newline 保留
+
+  test "sanitizeBinaryOutput 过滤 unicode 格式字符":
+    check "\xEF\xBF\xB9" notin sanitizeBinaryOutput("ab\xEF\xBF\xB9cd")  # 0xfff9 OBJECT REPLACEMENT
+
+  test "sanitizeShellOutput 清理链":
+    check sanitizeShellOutput("\x1b[31mhello\x1b[0m") == "hello"
+    check sanitizeShellOutput("a\rb") == "ab"   # 去 \r
