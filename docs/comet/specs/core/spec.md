@@ -1,20 +1,23 @@
-# NPI Integrate — Specification
+# NPI UsageTotals — Specification
 
 ## 目标
-把 pathutils/eventbus 两个已实现但未使用的模块接入实际路径，消除孤岛。
+为 npi 实现 token 用量累计与成本分解（对齐 pi usage-totals.ts）。
 
 ## 范围
-- `read` 工具：用 `resolveReadPath` 解析路径（~ 展开/macOS 变体）
-- `Agent`：增加 `eventBus` 字段；runTool 执行后 emit `tool:executed` 事件（channel 含工具名）
-- npi.nim：创建 agent 时挂载 eventBus
+- `src/usagetotals.nim`：
+  - `UsageTotals`：input/output/cacheRead/cacheWrite/cost
+  - `createUsageTotals()`、`addUsageToTotals(totals, usage)` 累计
+  - `getUsageCostBreakdown(entries)`：按 provider/model 分组统计 token+cost，过滤 0，按 cost 降序
+- 接入：runConversation 每轮 assistant usage 累计（可选，先提供纯函数）
 
 ## 非目标
-- 事件消费者 —— 仅提供事件通知能力
-- 其它工具路径解析 —— 后续
+- 会话条目类型全量 —— 用简化 entry（provider/model/usage）
+- 成本模型 —— 用 usage.cost 输入
 
 ## 验收
-- [ ] read 用 resolveReadPath（~ 可读）
-- [ ] agent 执行工具 emit 事件
-- [ ] eventBus 可订阅工具事件
-- [ ] 现有单测仍全绿
-- [ ] 集成单测覆盖
+- [ ] createUsageTotals 全 0
+- [ ] addUsageToTotals 正确累计
+- [ ] getUsageCostBreakdown 按 model 分组
+- [ ] 过滤 0 成本/0 token
+- [ ] 按 cost 降序
+- [ ] 单测覆盖
