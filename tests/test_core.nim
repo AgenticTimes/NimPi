@@ -8,6 +8,7 @@ import ../src/skills
 import ../src/compaction
 import ../src/slash
 import ../src/templates
+import ../src/modelresolver
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -262,3 +263,42 @@ suite "templates":
     check expanded == "计算：1 2 3"
     check expandPromptTemplate("/nosuch hi", @[t]) == "/nosuch hi"
     check expandPromptTemplate("normal text", @[t]) == "normal text"
+
+suite "modelresolver":
+  test "parseModelPattern 剥离 thinking level":
+    let a = parseModelPattern("sonnet")
+    check a.model == "sonnet"
+    check a.thinking == thNone
+    let b = parseModelPattern("claude-sonnet:high")
+    check b.model == "claude-sonnet"
+    check b.thinking == thHigh
+    let c = parseModelPattern("model:medium")
+    check c.model == "model"
+    check c.thinking == thMedium
+
+  test "parseModelPattern provider/model 前缀":
+    let p = parseModelPattern("anthropic/claude-sonnet:high")
+    check p.provider == "anthropic"
+    check p.model == "claude-sonnet"
+    check p.thinking == thHigh
+
+  test "无效 thinking level 宽松回退警告":
+    let w = parseModelPattern("sonnet:bogus")
+    check w.model == "sonnet"
+    check w.thinking == thNone
+    check w.warning.len > 0
+
+  test "无效 thinking level 严格模式失败":
+    let s = parseModelPattern("sonnet:bogus", false)
+    check s.model.len == 0
+
+  test "defaultModelForProvider 默认表":
+    check defaultModelForProvider("openai") == "gpt-4o-mini"
+    check defaultModelForProvider("anthropic") == "claude-sonnet-4-5"
+    check defaultModelForProvider("gemini") == "gemini-2.0-flash"
+    check defaultModelForProvider("unknown") == defaultModelForProvider("openai")
+
+  test "resolveModelSpec 空模式用默认":
+    let d = resolveModelSpec("", "openai")
+    check d.model == "gpt-4o-mini"
+    check d.provider == "openai"
