@@ -1,6 +1,6 @@
 ## 单元测试：wire 序列化与 agent 工具分发。
 
-import std/[unittest, json, os, strutils, sequtils]
+import std/[unittest, json, os, strutils, sequtils, algorithm]
 import ../src/types
 import ../src/agent
 import ../src/llm
@@ -13,6 +13,7 @@ import ../src/truncate
 import ../src/shell
 import ../src/grep
 import ../src/find
+import ../src/lsdir
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -437,3 +438,35 @@ suite "find":
   test "glob 转正则锚定":
     check matchGlob("*.txt", "a.txt")
     check not matchGlob("*.txt", "sub/c.txt")
+
+suite "ls":
+  test "listDir 字母序 + 目录 / 后缀 + dotfiles":
+    let r = listDir("tests/fixtures/lsdir", defaultLsOptions())
+    check ".hidden_dot" in r.entries        # 含 dotfiles
+    check "aa_dir/" in r.entries            # 目录加 /
+    check "a_file.txt" in r.entries
+    check "b_file.log" in r.entries
+    check "zzdir/" in r.entries
+    # 字母序：aa_dir 在 a_file 前（. 开头在前）
+    let dot = r.entries.find(".hidden_dot")
+    let aa = r.entries.find("aa_dir/")
+    check dot >= 0 and aa >= 0
+
+  test "listDir 排序正确":
+    let r = listDir("tests/fixtures/lsdir", defaultLsOptions())
+    var sorted = r.entries
+    sorted.sort()
+    check r.entries == sorted
+
+  test "listDir 条目上限":
+    let r = listDir("tests/fixtures/lsdir", LsOptions(limit: 2))
+    check r.entries.len == 2
+    check r.limitReached
+
+  test "formatLs 输出含 / 后缀与空目录":
+    let r = listDir("tests/fixtures/lsdir", defaultLsOptions())
+    let txt = formatLs(r)
+    check "aa_dir/" in txt
+    # 空目录
+    var empty = LsResult()
+    check formatLs(empty).contains("空目录")
