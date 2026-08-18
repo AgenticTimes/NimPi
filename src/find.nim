@@ -21,22 +21,53 @@ proc defaultFindOptions*(): FindOptions =
 # ---------------------------------------------------------------------------
 
 proc globToRegex(pattern: string): string =
-  ## 把 glob 转成 PCRE 正则（Nim re）。`**` 匹配任意多级，`*` 单段，`?` 单字符。
+  ## 把 glob 转成 PCRE 正则（Nim re）。
+  ## 支持：** 任意多级、* 单段、? 单字符、{a,b} brace、[abc]/[a-z]/[!abc] 字符类。
   var rx = ""
   var i = 0
   while i < pattern.len:
     let c = pattern[i]
     if c == '*':
       if i + 1 < pattern.len and pattern[i+1] == '*':
-        # ** 多级匹配（含 /）
         rx.add ".*"
-        inc i  # 跳过第 2 个 *
+        inc i
       else:
-        # * 不匹配 /（单段）
         rx.add "[^/]*"
     elif c == '?':
       rx.add "[^/]"
-    elif c in ['.', '(', ')', '+', '|', '^', '$', '{', '}', '[', ']']:
+    elif c == '{':
+      # brace 展开：{a,b} → (a|b)
+      let close = pattern.find('}', i)
+      if close > i:
+        let inner = pattern[i+1 ..< close]
+        let parts = inner.split(',')
+        rx.add "(" & parts.join("|") & ")"
+        i = close
+      else:
+        rx.add "\\{"
+    elif c == '[':
+      # 字符类：支持 [abc] [a-z] [!abc]
+      let close = pattern.find(']', i+1)
+      if close > i:
+        var cls = pattern[i+1 ..< close]
+        var negate = false
+        if cls.startsWith("!"):
+          negate = true
+          cls = cls[1 .. ^1]
+        # 转义类内特殊字符（- 保留作区间）
+        var escaped = ""
+        for ch in cls:
+          if ch in [']', '\\', '^']:
+            escaped.add "\\" & ch
+          else:
+            escaped.add ch
+        rx.add "["
+        if negate: rx.add "^"
+        rx.add escaped & "]"
+        i = close
+      else:
+        rx.add "\\["
+    elif c in ['.', '(', ')', '+', '|', '^', '$', '{', '}', '\\']:
       rx.add "\\" & c
     else:
       rx.add c
