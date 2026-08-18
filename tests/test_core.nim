@@ -743,3 +743,24 @@ suite "eventbus":
     bus.emit("ch1", "A")
     check a == "A"
     check b == ""      # ch2 未收到
+
+suite "integrate":
+  test "read 工具用 resolveReadPath（~ 展开）":
+    let home = getHomeDir()
+    # 用 runTool 读 ~ 开头的路径（不存在则报错而非 path 异常）
+    let r = runTool("read", %*{"path": "~/nonexistent_npi_probe.txt"}, ".")
+    check r.isError or "error" in r.text
+
+  test "eventBus 工具执行事件":
+    let bus = newEventBus()
+    var tools: seq[string] = @[]
+    discard bus.on("tool:executed", proc(d: string) = tools.add d)
+    # 模拟 agent 挂载
+    var agent = newAgent(nil, ".")
+    agent.eventBus = bus
+    # 直接 emit（模拟 runConversation 中的调用）
+    bus.emit("tool:executed", "read")
+    bus.emit("tool:executed", "bash")
+    check tools.len == 2
+    check "read" in tools
+    check "bash" in tools

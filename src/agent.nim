@@ -5,6 +5,8 @@ import std/[json, strutils, os]
 import ./types
 import ./compaction
 import ./truncate
+import ./eventbus
+import ./pathutils
 import ./shell
 import ./grep
 import ./find
@@ -33,6 +35,7 @@ type
     handler*: ToolHandler
     callbacks*: AgentCallbacks
     systemPromptCache*: string
+    eventBus*: EventBus
     onComplete*: proc(core: seq[ChatPayload]): void {.closure.}
 
   ChatPayload* = object
@@ -57,7 +60,9 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
     let path = args{"path"}.getStr("")
     if path.len == 0: return ("", name, "error: missing path", true)
     try:
-      let content = readFile(path)
+      # 用 resolveReadPath 解析（~ 展开/macOS 变体）
+      let resolved = resolveReadPath(path, cwd)
+      let content = readFile(resolved)
       let t = truncateHead(content, defaultTruncationOptions())
       let text = if t.truncated: t.content & "\n... [truncated " & formatSize(t.totalBytes) &
                     ", showing first " & $t.outputLines & " lines]"
