@@ -8,6 +8,7 @@ import ./truncate
 import ./shell
 import ./grep
 import ./find
+import ./lsdir
 
 type
   ToolResultRaw* = tuple
@@ -101,10 +102,11 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
   of "ls":
     let path = args{"path"}.getStr(".")
     try:
-      var sb = ""
-      for k in walkDir(path):
-        sb.add ($(k.kind) & " " & k.path & "\n")
-      return ("", name, sb, false)
+      var opts = defaultLsOptions()
+      let lim = args{"limit"}.getInt(0)
+      if lim > 0: opts.limit = lim
+      let r = listDir(path, opts)
+      return ("", name, formatLs(r), false)
     except CatchableError as e:
       return ("", name, "error: " & e.msg, true)
   of "grep":
