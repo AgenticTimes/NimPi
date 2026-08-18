@@ -5,6 +5,4 @@ npi
 .comet/runtime/
 .comet/current-change.json
 .worktrees/
-.npi/
-
 docs/comet/changes/*/runtime/
