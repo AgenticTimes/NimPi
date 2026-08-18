@@ -1,8 +1,6 @@
 ## 消息工厂：对齐 pi `messages.ts` 的 compaction 摘要格式。
 ## COMPACTION_SUMMARY_PREFIX/SUFFIX <summary> XML 包裹 + createCompactionSummaryMessage。
 
-import std/strutils
-
 const
   ## 对齐 pi messages.ts COMPACTION_SUMMARY_PREFIX / SUFFIX
   CompactionSummaryPrefix* = """The conversation history before this point was compacted into the following summary:
