@@ -1,32 +1,217 @@
 schema: comet.native.v4
 name: npi-gitignore
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-gitignore
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 的 grep/find 工具实现 .gitignore 尊重（对齐 pi：respects .gitignore）。
+    result: passed
+    reason:
+      text: grep/find respects .gitignore，对齐 pi ignore 语义
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/gitignore.nim`："
+    result: passed
+    reason:
+      text: src/gitignore.nim：IgnoreRule/parseGitIgnore/isIgnored/buildIgnoreMatcher
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`GitIgnoreRule`：pattern、negated(!)、anchored(/)等"
+    result: passed
+    reason:
+      text: 逐行解析（注释/空行跳过/!取反/锚定/目录后缀）
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`parseGitIgnore(content)`：逐行解析（注释/空行跳过）"
+    result: passed
+    reason:
+      text: 沿目录向上累积 .gitignore/.ignore/.fdignore
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`buildIgnoreMatcher(root)`：从 root 向上收集 .gitignore/.ignore/.fdignore 累积规则"
+    result: passed
+    reason:
+      text: isIgnored 判定（最后匹配规则决定）
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: "`isIgnored(path, matcher)`：路径匹配判定（含 ! 取反）"
+    result: passed
+    reason:
+      text: "! 取反覆盖"
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: glob 匹配复用 find.nim 的 glob 语义（*、**、锚定）
+    result: passed
+    reason:
+      text: grepPath 跳过忽略
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: 接入 grepPath/findPath：跳过 isIgnored 的文件/目录
+    result: passed
+    reason:
+      text: findPath 跳过忽略
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 解析 .gitignore 规则（注释/空行/!取反/锚定）"
+    result: passed
+    reason:
+      text: 解析规则（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] 沿目录向上累积规则"
+    result: passed
+    reason:
+      text: isIgnored 匹配+取反（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] isIgnored 判定匹配"
+    result: passed
+    reason:
+      text: 目录后缀仅匹配目录（单测）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] ! 取反覆盖"
+    result: passed
+    reason:
+      text: grepPath 跳过（单测）
+      truncated: false
+  - id: A13
+    source: specs/core/spec.md
+    text: "[ ] grepPath/findPath 跳过忽略"
+    result: passed
+    reason:
+      text: findPath 跳过（单测）
+      truncated: false
+  - id: A14
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 69 项）
+      truncated: false
+builder_handoff:
+  candidate_id: ef5b126b-c8c2-41b3-8f09-6d71a0e949ff
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:3498db1d-9e48-4354-8120-5bba31ab5b85
+  iteration: 1
+  summary:
+    text: 实现 .gitignore 匹配语义：parseGitIgnore（注释/空行/!取反/锚定/目录后缀）、collectIgnoreFiles
+      沿目录向上累积 .gitignore/.ignore/.fdignore、isIgnored 判定（最后匹配规则决定，!取反覆盖）；接入
+      grepPath 与 findPath 跳过忽略文件/目录。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 69 单测全绿（含 5 个 gitignore 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 完整 gitignore 规范（** 特殊语义、! 目录反转）待后续
+      truncated: false
+    - text: git 内建规则（.git/info/exclude、global）待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T05:31:19.312Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: ef5b126b-c8c2-41b3-8f09-6d71a0e949ff
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:47fb1652-e53b-48d8-bd90-15ca529c629f
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-ig-ut
+      name:
+        text: NPI GitIgnore 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_ig_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 2149
+  summary:
+    text: NPI GitIgnore 验收全过：comet Runtime 用 brew nim 实跑单测 69 OK，grep/find 已尊重
+      .gitignore。
+    truncated: false
+  risks:
+    - text: 完整 gitignore 规范（** 特殊语义、! 目录反转）待后续
+      truncated: false
+    - text: git 内建规则（.git/info/exclude、global）待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T05:31:41.315Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI GitIgnore 验收全过：comet Runtime 用 brew nim 实跑单测 69 OK，grep/find 已尊重
+        .gitignore。
+      truncated: false
+    completed_at: 2026-08-18T05:31:41.315Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +222,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-18T05:28:10.370Z
