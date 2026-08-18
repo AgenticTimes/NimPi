@@ -12,6 +12,7 @@ import ../src/modelresolver
 import ../src/truncate
 import ../src/shell
 import ../src/grep
+import ../src/find
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -409,3 +410,30 @@ suite "grep":
     var o = defaultGrepOptions()
     o.pattern = "zzz-no-match"
     check grepFile("tests/fixtures/grepdir/fruit.txt", o).len == 0
+
+suite "find":
+  test "glob * 单段匹配根目录":
+    let r = findPath("tests/fixtures/finddir", FindOptions(pattern: "*.txt"))
+    check r == @["a.txt"]
+
+  test "glob ** 多级递归":
+    let r = findPath("tests/fixtures/finddir", FindOptions(pattern: "**/*.txt"))
+    check "sub/c.txt" in r
+    check "sub/fold/d.txt" in r
+    check "a.txt" notin r
+
+  test "glob ? 单字符与匹配":
+    let r = findPath("tests/fixtures/finddir", FindOptions(pattern: "?.log"))
+    check r == @["b.log"]
+
+  test "跳过隐藏文件/目录":
+    let r = findPath("tests/fixtures/finddir", FindOptions(pattern: "**/*.hidden"))
+    check r.len == 0
+
+  test "结果上限":
+    let r = findPath("tests/fixtures/finddir", FindOptions(pattern: "**/*.txt", limit: 1))
+    check r.len == 1
+
+  test "glob 转正则锚定":
+    check matchGlob("*.txt", "a.txt")
+    check not matchGlob("*.txt", "sub/c.txt")

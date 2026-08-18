@@ -7,6 +7,7 @@ import ./compaction
 import ./truncate
 import ./shell
 import ./grep
+import ./find
 
 type
   ToolResultRaw* = tuple
@@ -131,9 +132,13 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
     let path = args{"path"}.getStr(".")
     let name2 = args{"name"}.getStr("*")
     try:
-      let cmd = "find " & path & " -name '" & name2.replace("'", "'\\''") & "' 2>/dev/null | head -50"
-      let (outp, _) = execCmdEx(cmd, options = {poUsePath})
-      return ("", name, if outp.len == 0: "no results" else: outp, false)
+      var opts = defaultFindOptions()
+      opts.pattern = name2
+      let results = findPath(path, opts)
+      var text = ""
+      for r in results:
+        text.add (path / r) & "\n"
+      return ("", name, if text.len == 0: "no results" else: text, false)
     except CatchableError as e:
       return ("", name, "error: " & e.msg, true)
   else:
