@@ -1,27 +1,25 @@
-# NPI Find — Specification
+# NPI Ls — Specification
 
 ## 目标
-为 npi 的 find 工具实现纯 Nim 文件查找，对齐 pi `find.ts`：不依赖 shell find。
+为 npi 的 ls 工具实现 pi 的格式语义：排序、目录标记、dotfiles、上限。
 
 ## 范围
-- `src/find.nim`：
-  - glob 匹配：`*`（段内任意）、`?`（单字符）、`**`（多级）
-  - `findPath(pattern, root)`：递归遍历，返回相对路径列表
-  - 跳过隐藏目录/文件（对齐 pi 尊重忽略）
-  - 结果上限（默认 50，对齐 find limit）
-  - 排序稳定
-- 接入 agent.nim 的 find 工具：替换 shell find
+- `src/lsdir.nim`：
+  - `listDir(path, limit)`：读取目录项，字母序排序，目录加 `/` 后缀，含 dotfiles
+  - 条目上限（默认 500，对齐 pi DEFAULT_LIMIT）
+  - 输出经 truncateHead 字节截断（50KB）
+  - 返回条目 + 截断/上限通知
+- 接入 agent.nim 的 ls 工具：替换无格式 walkDir
 
 ## 非目标
-- .gitignore 解析 —— 后续
-- 完整 glob 库（brace/character class）—— 后续
-- fd 集成 —— 后续
+- 符号链接解析 —— 后续
+- 递归列目录 —— 后续
 
 ## 验收
-- [ ] glob `*` / `?` 匹配
-- [ ] `**` 多级递归匹配
-- [ ] findPath 返回相对路径
-- [ ] 跳过隐藏目录/文件
-- [ ] 结果上限
-- [ ] agent find 工具接入
+- [ ] 字母序排序
+- [ ] 目录加 / 后缀
+- [ ] 含 dotfiles
+- [ ] 条目上限
+- [ ] truncateHead 截断
+- [ ] agent ls 接入
 - [ ] 单测覆盖
