@@ -3,6 +3,7 @@
 
 import std/[json, strutils, os, osproc]
 import ./types
+import ./compaction
 
 type
   ToolResultRaw* = tuple
@@ -21,6 +22,7 @@ type
     history*: seq[Message]
     tools*: seq[JsonNode]
     maxIterations*: int
+    compactionSettings*: CompactionSettings
     cwd*: string
     handler*: ToolHandler
     callbacks*: AgentCallbacks
