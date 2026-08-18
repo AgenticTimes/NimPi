@@ -1,32 +1,200 @@
 schema: comet.native.v4
 name: npi-glob
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-glob
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi find 工具的 glob 补全 brace 展开与字符类支持（对齐 glob 库常用子集）。
+    result: passed
+    reason:
+      text: find glob 补全 brace 与字符类
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/glob.nim`（或增强 find.nim）："
+    result: passed
+    reason:
+      text: globToRegex 支持 brace/字符类/区间/取反
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: brace 展开：`{a,b}` → `(a|b)` 正则
+    result: passed
+    reason:
+      text: brace {a,b} 匹配
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: 字符类：`[abc]`、`[a-z]`、`[!abc]`（取反）
+    result: passed
+    reason:
+      text: 字符类 [abc]
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: 与现有 `*`/`?`/`**` 组合
+    result: passed
+    reason:
+      text: 区间 [a-z]
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 接入 findPath 的 globToRegex
+    result: passed
+    reason:
+      text: 取反 [!abc]
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] brace {a,b} 匹配"
+    result: passed
+    reason:
+      text: 与 * 组合
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] 字符类 [abc] 匹配"
+    result: passed
+    reason:
+      text: findPath 用 brace 模式
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 区间 [a-z]"
+    result: passed
+    reason:
+      text: brace（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] 取反 [!abc]"
+    result: passed
+    reason:
+      text: 字符类/区间/取反（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 与 * 组合"
+    result: passed
+    reason:
+      text: findPath 集成（单测）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 97 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 6ebb0c34-f1ca-472c-96d2-4da857019e3d
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:c7e28e5e-25f8-4ddc-89a1-168ad1ae08dc
+  iteration: 1
+  summary:
+    text: find glob 增强：globToRegex 支持 brace 展开 {a,b}→(a|b)、字符类 [abc]/区间 [a-z]/取反
+      [!abc]（转 ^ 前缀），与现有 */?/** 组合；findPath 可用 brace 模式。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 97 单测全绿（含 6 个 glob 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 嵌套 brace 待后续
+      truncated: false
+    - text: extglob 待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T16:23:41.032Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: 6ebb0c34-f1ca-472c-96d2-4da857019e3d
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:2d7b71c8-b69c-4988-b2b4-4b8ba9c7b95b
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-glob-ut
+      name:
+        text: NPI Glob 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_glob_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 3543
+  summary:
+    text: NPI Glob 验收全过：comet Runtime 用 brew nim 实跑单测 97 OK，find glob 支持 brace/字符类。
+    truncated: false
+  risks:
+    - text: 嵌套 brace 待后续
+      truncated: false
+    - text: extglob 待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T16:23:55.178Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Glob 验收全过：comet Runtime 用 brew nim 实跑单测 97 OK，find glob 支持 brace/字符类。
+      truncated: false
+    completed_at: 2026-08-18T16:23:55.178Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +205,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-18T16:22:28.297Z
