@@ -1,32 +1,214 @@
 schema: comet.native.v4
 name: npi-ls
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-ls
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 的 ls 工具实现 pi 的格式语义：排序、目录标记、dotfiles、上限。
+    result: passed
+    reason:
+      text: ls 工具对齐 pi tools/ls.ts 语义
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/lsdir.nim`："
+    result: passed
+    reason:
+      text: src/lsdir.nim：LsOptions/LsResult/listDir/formatLs
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`listDir(path, limit)`：读取目录项，字母序排序，目录加 `/` 后缀，含 dotfiles"
+    result: passed
+    reason:
+      text: 字母序排序
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: 条目上限（默认 500，对齐 pi DEFAULT_LIMIT）
+    result: passed
+    reason:
+      text: 目录加 / 后缀
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: 输出经 truncateHead 字节截断（50KB）
+    result: passed
+    reason:
+      text: 含 dotfiles
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 返回条目 + 截断/上限通知
+    result: passed
+    reason:
+      text: 条目上限（默认500）
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: 接入 agent.nim 的 ls 工具：替换无格式 walkDir
+    result: passed
+    reason:
+      text: truncateHead 字节截断
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] 字母序排序"
+    result: passed
+    reason:
+      text: agent ls 工具接入
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 目录加 / 后缀"
+    result: passed
+    reason:
+      text: 字母序+后缀+dotfiles（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] 含 dotfiles"
+    result: passed
+    reason:
+      text: 排序正确（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 条目上限"
+    result: passed
+    reason:
+      text: 条目上限（单测）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] truncateHead 截断"
+    result: passed
+    reason:
+      text: formatLs 输出（单测）
+      truncated: false
+  - id: A13
+    source: specs/core/spec.md
+    text: "[ ] agent ls 接入"
+    result: passed
+    reason:
+      text: 空目录处理
+      truncated: false
+  - id: A14
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 64 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 4f35ffa5-60eb-4a09-a52d-b97bc5524c96
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:b8dba0bb-53fd-409b-9f8a-f62461ecc627
+  iteration: 1
+  summary:
+    text: 实现 ls 工具对齐 pi ls.ts：listDir 字母序排序、目录加 / 后缀、含 dotfiles、条目上限(默认500)、formatLs
+      用 truncateHead 字节截断(50KB) + 上限/截断通知；agent ls 工具接入替换无格式 walkDir。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 64 单测全绿（含 4 个 ls 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 符号链接解析待后续
+      truncated: false
+    - text: 递归列目录待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T05:21:42.695Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: 4f35ffa5-60eb-4a09-a52d-b97bc5524c96
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:637968dc-9e3c-4722-88ae-1cca7118e63b
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-ls-ut
+      name:
+        text: NPI Ls 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_ls_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 1657
+  summary:
+    text: NPI Ls 验收全过：comet Runtime 用 brew nim 实跑单测 64 OK，agent ls 工具已按 pi 语义格式化。
+    truncated: false
+  risks:
+    - text: 符号链接解析待后续
+      truncated: false
+    - text: 递归列目录待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T05:22:04.307Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Ls 验收全过：comet Runtime 用 brew nim 实跑单测 64 OK，agent ls 工具已按 pi 语义格式化。
+      truncated: false
+    completed_at: 2026-08-18T05:22:04.307Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +219,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-18T05:19:17.057Z
