@@ -17,6 +17,7 @@ import ../src/lsdir
 import ../src/gitignore
 import ../src/messages
 import ../src/binary
+import ../src/bashtimeout
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -624,3 +625,20 @@ suite "binary":
     var o2 = defaultGrepOptions()
     o2.pattern = "plain"
     check grepFile("tests/fixtures/bindir/plain.txt", o2).len == 1
+
+suite "bashtimeout":
+  test "正常命令返回输出+退出码":
+    let r = execBashWithTimeout("echo hello", BashTimeoutOptions(timeoutMs: 5000))
+    check not r.timedOut
+    check r.exitCode == 0
+    check r.output.contains("hello")
+
+  test "超时命令被终止":
+    let r = execBashWithTimeout("sleep 5", BashTimeoutOptions(timeoutMs: 300))
+    check r.timedOut
+    check r.output.contains("超时")
+
+  test "stderr 也被收集":
+    let r = execBashWithTimeout("echo err >&2; echo out", BashTimeoutOptions(timeoutMs: 5000))
+    check r.output.contains("err")
+    check r.output.contains("out")
