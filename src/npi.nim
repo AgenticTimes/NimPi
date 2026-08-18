@@ -7,6 +7,7 @@ import ./llm
 import ./agent
 import ./session
 import ./tui
+import ./skills
 
 type
   CliArgs = object
@@ -93,7 +94,7 @@ proc parseArgs(argv: seq[string]): CliArgs =
     result.prompt = positional.join(" ")
 
 proc systemPrompt(cwd: string): string =
-  """You are npi, a coding agent that helps with programming tasks in the current repository.
+  result = """You are npi, a coding agent that helps with programming tasks in the current repository.
 
 You have access to tools: read, write, edit, bash, ls, grep, find.
 - read <path> — read a file
@@ -105,6 +106,11 @@ You have access to tools: read, write, edit, bash, ls, grep, find.
 - find <path> <name> — find files by name
 
 Work iteratively: inspect, then edit, then verify. Keep responses concise. When done, summarize what you changed.""" % cwd
+  # 注入 Agent Skills（对齐 pi skills 系统）
+  let skills = loadSkills(cwd)
+  let skillsPrompt = skills.skills.formatSkillsForPrompt()
+  if skillsPrompt.len > 0:
+    result.add "\n\n" & skillsPrompt
 
 proc historyToChat(history: seq[Message]): seq[ChatMessage] =
   for m in history:

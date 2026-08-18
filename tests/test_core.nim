@@ -1,9 +1,10 @@
 ## 单元测试：wire 序列化与 agent 工具分发。
 
-import std/[unittest, json, os, strutils]
+import std/[unittest, json, os, strutils, sequtils]
 import ../src/types
 import ../src/agent
 import ../src/llm
+import ../src/skills
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -85,3 +86,44 @@ suite "gemini wire":
     check last["role"].getStr == "user"
     check last["content"]["parts"][0]["functionResponse"]["name"].getStr == "read"
     check last["content"]["parts"][0]["functionResponse"]["response"]["output"].getStr == "data"
+
+suite "skills":
+  setup:
+    let fixtureDir = getCurrentDir() / "tests" / "fixtures" / "skills"
+
+  test "递归发现 SKILL.md（含嵌套），目录含 SKILL.md 不深入":
+    let r = loadSkillsFromDir(fixtureDir)
+    let names = r.skills.mapIt(it.name)
+    check "root-skill" in names
+    check "nested-skill" in names      # 嵌套子目录被递归发现
+    check "disabled-skill" in names
+    check "dir-named" in names         # frontmatter 无 name → 目录名
+
+  test "frontmatter 解析 name/description":
+    let r = loadSkillsFromDir(fixtureDir)
+    let root = r.skills.filterIt(it.name == "root-skill")[0]
+    check root.description == "Root level skill for testing discovery."
+    check not root.disableModelInvocation
+
+  test "disable-model-invocation=true 被标记":
+    let r = loadSkillsFromDir(fixtureDir)
+    let d = r.skills.filterIt(it.name == "disabled-skill")[0]
+    check d.disableModelInvocation
+
+  test "损坏 frontmatter 仅诊断不阻断":
+    let r = loadSkillsFromDir(fixtureDir)
+    # broken-skill 无 frontmatter → 不进 skills，产生诊断
+    let names = r.skills.mapIt(it.name)
+    check "broken-skill" notin names
+    # 其余 skill 仍被发现
+    check names.len >= 3
+
+  test "formatSkillsForPrompt XML 格式 + 排除 disabled":
+    let r = loadSkillsFromDir(fixtureDir)
+    let s = formatSkillsForPrompt(r.skills)
+    check "<available_skills>" in s
+    check "</available_skills>" in s
+    check "root-skill" in s
+    check "disabled-skill" notin s        # 不注入 disabled
+    check "<skill name=\"" in s
+    check "<description>" in s
