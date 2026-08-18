@@ -1,27 +1,27 @@
-# NPI Compaction — Specification
+# NPI Slash — Specification
 
 ## 目标
-为 npi 实现上下文压缩，长会话超过阈值时自动把最早的 user/assistant/tool 消息压缩为一条摘要，保留最近的消息。
+为 npi 实现 slash 命令系统：用户以 `/cmd [arg]` 输入命令，TUI 与 REPL 统一解析分发，而非硬编码个别命令。
 
 ## 范围
-- `src/compaction.nim` 纯函数：
-  - `estimateTokens(msg)` chars/4 保守启发式（对齐 pi）
-  - `estimateContextTokens(messages)` 估算整体 context tokens
-  - `shouldCompact(contextTokens, contextWindow, settings)`：contextTokens > window - reserveTokens
-  - `findCutPoint(messages, keepRecentTokens)`：从最新往回累积，找到切点（cut point）
-  - `prepareCompaction(messages)`：切点前的消息标记为待摘要，返回摘要文本
-- 集成到 runConversation：每轮 LLM 调用前估算，超阈值则用 LLM 生成摘要并替换旧消息
-- 阈值可配置：窗口默认 200k tokens、reserve 16k、keepRecent 20k（对齐 pi 默认）
+- `src/slash.nim`：
+  - `SlashCommand` 类型（name/description/argumentHint/handler）
+  - 内置命令注册表：quit、help、model、compact、new、resume、session
+  - `parseSlash`：把输入分成 (command, argument)，仅当以 `/` 开头
+  - `handleSlash`：分发到命令处理器
+- TUI 与 REPL 统一：输入以 `/` 开头且是已知命令 → 执行命令；否则走对话
+- 暴露 `help` 列出全部命令（对齐 pi BUILTIN_SLASH_COMMANDS 风格）
 
 ## 非目标
-- 多轮 split-turn 精确切点 —— 简化为一处切点
-- 断点续传/前次摘要迭代 —— 同一会话内单次压缩
-- fileOps 操作提取 —— 后续 change
+- extensions/prompt/skill 来源命令注册 —— 后续 change
+- 菜单/选择器 UI（model 选择器、session 树）—— 后续 change
+- export 到 HTML / gist share —— 后续 change
 
 ## 验收
-- [ ] estimateTokens 用 chars/4 启发式
-- [ ] shouldCompact 阈值判定正确（window - reserve）
-- [ ] findCutPoint 保留最近 keepRecentTokens，找到切点
-- [ ] 超阈值时触发压缩，旧消息替换为摘要
-- [ ] 未超阈值不压缩（历史不变）
-- [ ] 单测覆盖估算/切点/压缩
+- [ ] 内置命令注册表含 quit/help/model/compact/new/resume/session
+- [ ] parseSlash 正确拆分命令与参数（/cmd、/cmd arg）
+- [ ] 非 `/` 开头输入不被当作命令
+- [ ] 未知命令给出提示不崩溃
+- [ ] TUI 里 /quit 退出、/help 列命令
+- [ ] REPL 同样支持命令
+- [ ] 单测覆盖解析与分发
