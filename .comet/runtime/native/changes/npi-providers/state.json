@@ -1,7 +1,7 @@
 {
   "schema": "comet.native.local-execution.v4",
   "change": "npi-providers",
-  "basedOnStateVersion": 3,
+  "basedOnStateVersion": 9,
   "workspace": {
     "projectRoot": "/Users/meetai/source/pi/npi/.worktrees/npi-providers",
     "worktreeRoot": "/Users/meetai/source/pi/npi/.worktrees/npi-providers",

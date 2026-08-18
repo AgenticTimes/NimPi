@@ -1,0 +1,15 @@
+
+[Suite] types wire
+  [OK] toWireJson 用户消息
+  [OK] assistant 文本 + 工具调用
+
+[Suite] agent tools
+  [OK] read 不存在文件返回错误
+  [OK] bash echo
+  [OK] write 后 read 回读
+  [OK] 未知工具
+  [OK] edit 存在替换
+
+[Suite] anthropic wire
+  [OK] buildAnthropicBody 工具声明转换
+  [OK] buildAnthropicBody tool_result 消息

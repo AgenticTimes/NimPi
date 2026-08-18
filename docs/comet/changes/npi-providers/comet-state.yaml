@@ -1,9 +1,9 @@
 schema: comet.native.v4
 name: npi-providers
 language: zh-CN
-phase: verify
+phase: archive
 status: active
-state_version: 3
+state_version: 9
 brief: brief.md
 spec_changes:
   - capability: core
@@ -13,69 +13,89 @@ workspace:
   isolation: worktree
   change_branch: comet/npi-providers
   target_branch: master
-  finish: null
+  finish: merge
 loop:
-  stage: verify-ready
+  stage: archive-ready
   goal_cycle: 1
   iteration: 1
-  attempt: 0
+  attempt: 2
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: run-required-checks-and-dispatch-verifier
+  next_action: archive
 acceptance:
   - id: A1
     source: specs/core/spec.md
     text: 为 npi 增加第二家 LLM provider（Anthropic），与现有 OpenAI 兼容 provider 并存、可切换。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: 为 npi 增加 Anthropic provider，与 openai 并存可切换
+      truncated: false
   - id: A2
     source: specs/core/spec.md
     text: "`LlmClient` 抽象 provider 类型：`openai` 与 `anthropic`"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: LlmClient 抽象 provider openai|anthropic，stream 分派
+      truncated: false
   - id: A3
     source: specs/core/spec.md
     text: Anthropic Messages API 流式（SSE `content_block_delta`），支持文本与 `tool_use` 工具调用
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Anthropic Messages 流式解析（text_delta/tool_use）
+      truncated: false
   - id: A4
     source: specs/core/spec.md
     text: CLI `--provider anthropic` 与 `NPI_PROVIDER` 环境变量切换
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: --provider / NPI_PROVIDER 切换，默认 openai
+      truncated: false
   - id: A5
     source: specs/core/spec.md
     text: 复用现有 agent 循环/工具/会话，不改动其接口
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: 复用 agent 循环/工具/会话，未改接口
+      truncated: false
   - id: A6
     source: specs/core/spec.md
     text: "[ ] `--provider anthropic` 可切换，默认仍为 openai"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: --provider anthropic 可切换，默认仍 openai（实测）
+      truncated: false
   - id: A7
     source: specs/core/spec.md
     text: "[ ] Anthropic 流式文本解析（content_block_delta text_delta）"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Anthropic 流式文本解析，mock 端到端输出完整
+      truncated: false
   - id: A8
     source: specs/core/spec.md
     text: "[ ] Anthropic `tool_use` 工具调用可被 agent 循环执行并回填 tool_result"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: tool_use 执行并 tool_result 回填（请求体协议正确）
+      truncated: false
   - id: A9
     source: specs/core/spec.md
     text: "[ ] 用 mock Anthropic SSE 验证端到端 agent 循环 2 轮"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: mock Anthropic SSE 端到端 2 轮 agent 循环
+      truncated: false
   - id: A10
     source: specs/core/spec.md
     text: "[ ] 现有单元测试仍全绿"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 9 项）
+      truncated: false
 builder_handoff:
   candidate_id: 35edba77-06e6-4528-8608-c2a575c16617
   identity_provider: skill-coordinated
@@ -124,8 +144,70 @@ builder_handoff:
   known_limits_truncated: false
   submitted_at: 2026-08-17T23:46:26.448Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: 35edba77-06e6-4528-8608-c2a575c16617
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:e96382be-3b72-4e29-8a9e-7951a7698dd3
+  iteration: 1
+  attempt: 2
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-prov-ut
+      name:
+        text: NPI Providers 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_prov_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 130
+  summary:
+    text: NPI Providers 验收全过：comet Runtime 用 brew nim 实跑单测 9 OK（曾因 choosenim HOME
+      缺失无法 spawn，已根治），mock Anthropic 端到端含 tool_result 回填，openai 回归无影响。
+    truncated: false
+  risks:
+    - text: Gemini/Mistral 多 provider 待后续 change
+      truncated: false
+    - text: Anthropic 仅 mock 验证，未接真实 API 计费
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T00:10:29.701Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: execution-error
+    unresolved_ids: []
+    summary:
+      text: "Native Verifier response was invalid: Native Verifier acceptance coverage
+        is invalid (duplicate: none; unknown: none; missing: A6, A7, A8, A9,
+        A10)"
+      truncated: false
+    completed_at: 2026-08-17T23:47:05.192Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 2
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Providers 验收全过：comet Runtime 用 brew nim 实跑单测 9 OK（曾因 choosenim HOME
+        缺失无法 spawn，已根治），mock Anthropic 端到端含 tool_result 回填，openai 回归无影响。
+      truncated: false
+    completed_at: 2026-08-18T00:10:29.701Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -136,7 +218,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-17T23:39:49.614Z
