@@ -7,6 +7,7 @@ import ../src/llm
 import ../src/skills
 import ../src/compaction
 import ../src/slash
+import ../src/templates
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -222,3 +223,42 @@ suite "slash":
     let r = handleSlash(commands, "/model", proc(n: string): string = got = n; "gpt-4o-mini")
     check r.output == "gpt-4o-mini"
     check got == "model"
+
+suite "templates":
+  test "parseCommandArgs 处理空格与引号":
+    check parseCommandArgs("").len == 0
+    check parseCommandArgs("a b c") == @["a", "b", "c"]
+    check parseCommandArgs("a \"b c\" d") == @["a", "b c", "d"]
+    check parseCommandArgs("'x y' z") == @["x y", "z"]
+    check parseCommandArgs("  spaced  ") == @["spaced"]
+
+  test "substituteArgs $1 $@":
+    check substituteArgs("$1 and $2", @["a", "b"]) == "a and b"
+    check substituteArgs("all: $@", @["a", "b"]) == "all: a b"
+    check substituteArgs("all: $ARGUMENTS", @["x"]) == "all: x"
+    check substituteArgs("missing $3", @["a"]) == "missing "
+
+  test "substituteArgs 默认值 ${N:-default}":
+    check substituteArgs("${1:-none}", @["v"]) == "v"
+    check substituteArgs("${1:-none}", @[]) == "none"
+    check substituteArgs("x=${@:-empty}", @[]) == "x=empty"
+    check substituteArgs("x=${@:-empty}", @["a"]) == "x=a"
+
+  test "substituteArgs 切片 ${@:N} ${@:N:L}":
+    check substituteArgs("${@:2}", @["a", "b", "c"]) == "b c"
+    check substituteArgs("${@:1:2}", @["a", "b", "c"]) == "a b"
+
+  test "loadTemplateFromFile frontmatter+body":
+    # fixture 已作为 tracked 文件存在（tests/fixtures/prompts/）
+    let ts = loadTemplatesFromDir("tests/fixtures/prompts")
+    check ts.len == 1
+    check ts[0].name == "bugfix"
+    check "修 bug" in ts[0].description
+    check "$1" in ts[0].content
+
+  test "expandPromptTemplate 命中展开 / 未命中原样":
+    let t = PromptTemplate(name: "sum", description: "", content: "计算：$@")
+    let expanded = expandPromptTemplate("/sum 1 2 3", @[t])
+    check expanded == "计算：1 2 3"
+    check expandPromptTemplate("/nosuch hi", @[t]) == "/nosuch hi"
+    check expandPromptTemplate("normal text", @[t]) == "normal text"
