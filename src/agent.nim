@@ -4,6 +4,7 @@
 import std/[json, strutils, os, osproc]
 import ./types
 import ./compaction
+import ./truncate
 
 type
   ToolResultRaw* = tuple
@@ -51,7 +52,12 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
     let path = args{"path"}.getStr("")
     if path.len == 0: return ("", name, "error: missing path", true)
     try:
-      return ("", name, readFile(path), false)
+      let content = readFile(path)
+      let t = truncateHead(content, defaultTruncationOptions())
+      let text = if t.truncated: t.content & "\n... [truncated " & formatSize(t.totalBytes) &
+                    ", showing first " & $t.outputLines & " lines]"
+                 else: t.content
+      return ("", name, text, false)
     except CatchableError as e:
       return ("", name, "error: " & e.msg, true)
   of "write":
@@ -81,8 +87,11 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
     if cmd.len == 0: return ("", name, "error: missing command", true)
     try:
       let (outp, code) = execCmdEx(cmd, options = {poUsePath, poStdErrToStdOut})
-      let truncated = if outp.len > 50000: outp[0 ..< 50000] & "\n...truncated" else: outp
-      return ("", name, truncated, code != 0)
+      let t = truncateTail(outp, defaultTruncationOptions())
+      let text = if t.truncated: t.content & "\n... [truncated " & formatSize(t.totalBytes) &
+                    ", showing last " & $t.outputLines & " lines]"
+                 else: t.content
+      return ("", name, text, code != 0)
     except CatchableError as e:
       return ("", name, "error: " & e.msg, true)
   of "ls":

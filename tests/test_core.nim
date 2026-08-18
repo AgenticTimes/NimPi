@@ -9,6 +9,7 @@ import ../src/compaction
 import ../src/slash
 import ../src/templates
 import ../src/modelresolver
+import ../src/truncate
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -302,3 +303,46 @@ suite "modelresolver":
     let d = resolveModelSpec("", "openai")
     check d.model == "gpt-4o-mini"
     check d.provider == "openai"
+
+suite "truncate":
+  test "formatSize 人类可读":
+    check formatSize(500) == "500B"
+    check formatSize(2048) == "2.0KB"
+    check formatSize(5 * 1024 * 1024) == "5.0MB"
+
+  test "truncateHead 小内容不截断":
+    var o = defaultTruncationOptions()
+    o.maxLines = 10; o.maxBytes = 100
+    let r = truncateHead("line1\nline2", o)
+    check not r.truncated
+    check r.content == "line1\nline2"
+
+  test "truncateHead 超行数保留开头":
+    var o = defaultTruncationOptions()
+    o.maxLines = 3; o.maxBytes = 10000
+    var s = ""
+    for i in 0 ..< 10: s.add "line" & $i & "\n"
+    let r = truncateHead(s, o)
+    check r.truncated
+    check r.truncatedBy == "lines"
+    check r.outputLines == 3
+    check "line0" in r.content
+    check "line9" notin r.content
+
+  test "truncateTail 超字节保留结尾":
+    var o = defaultTruncationOptions()
+    o.maxLines = 100; o.maxBytes = 20
+    let long = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nERROR_INFO"
+    let r = truncateTail(long, o)
+    check r.truncated
+    check "ERROR_INFO" in r.content   # 保留尾部错误
+
+  test "truncateTail 超行数保留结尾":
+    var o = defaultTruncationOptions()
+    o.maxLines = 3; o.maxBytes = 10000
+    var s = ""
+    for i in 0 ..< 10: s.add "line" & $i & "\n"
+    let r = truncateTail(s, o)
+    check r.truncated
+    check "line9" in r.content
+    check "line0" notin r.content or r.truncated  # 头部可能被截
