@@ -11,6 +11,7 @@ import ./skills
 import ./compaction
 import ./slash
 import ./templates
+import ./modelresolver
 
 type
   CliArgs = object
@@ -364,10 +365,24 @@ proc main() =
     except ValueError: discard
   agent.setSystemPrompt(systemPrompt(cwd))
 
+  # 模型解析：若 --model 含 provider/ 前缀，顺带切换 provider；剥离 thinking level
+  var effectiveModel = args.model
+  var effectiveProvider = args.provider
+  if args.model.contains('/'):
+    let sl = args.model.find('/')
+    effectiveProvider = args.model[0 ..< sl]
+    effectiveModel = resolveModelSpec(args.model[sl+1 .. ^1], effectiveProvider).model
+    if effectiveModel.len == 0:
+      effectiveModel = defaultModelForProvider(effectiveProvider)
+  else:
+    effectiveModel = resolveModelSpec(args.model, effectiveProvider).model
+    if effectiveModel.len == 0:
+      effectiveModel = defaultModelForProvider(effectiveProvider)
+
   let client = newLlmClient(ClientOptions(
-    provider: args.provider,
+    provider: effectiveProvider,
     apiKey: args.apiKey, baseUrl: args.baseUrl,
-    model: args.model, timeoutMs: 300000))
+    model: effectiveModel, timeoutMs: 300000))
   let driver = AgentDriver(client: client, agent: agent)
 
   # 会话
