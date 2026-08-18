@@ -13,6 +13,7 @@ import ./slash
 import ./templates
 import ./modelresolver
 import ./messages
+import ./eventbus
 
 type
   CliArgs = object
@@ -196,6 +197,9 @@ proc runConversation*(driver: AgentDriver, session: var Session,
     for c in content:
       if c.kind == ctToolCall:
         let r = driver.agent.handler(c.name, c.arguments, driver.agent.cwd)
+        # 工具执行事件（对齐 pi event-bus 用途）
+        if not driver.agent.eventBus.isNil:
+          driver.agent.eventBus.emit("tool:executed", c.name)
         let tr = Message(kind: mkToolResult, toolCallId: c.id,
                          toolName: c.name, toolText: r.text, isError: r.isError)
         session.append(tr)
@@ -342,6 +346,7 @@ proc main() =
   let cwd = getCurrentDir()
   var agent = newAgent(nil, cwd)
   agent.maxIterations = args.maxIterations
+  agent.eventBus = newEventBus()
   agent.compactionSettings = defaultCompactionSettings()
   # 可配置 context window（测试/调优用）
   let cwEnv = getEnv("NPI_CONTEXT_WINDOW", "")

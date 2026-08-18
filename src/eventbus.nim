@@ -1,7 +1,7 @@
 ## 事件总线：对齐 pi `event-bus.ts`。
 ## on/emit/clear，handler 异常隔离，返回取消函数。
 
-import std/[tables, strutils]
+import std/[tables]
 
 type
   EventHandler* = proc(data: string): void {.closure.}
