@@ -12,6 +12,7 @@ import ./compaction
 import ./slash
 import ./templates
 import ./modelresolver
+import ./messages
 
 type
   CliArgs = object
@@ -117,23 +118,8 @@ Work iteratively: inspect, then edit, then verify. Keep responses concise. When 
     result.add "\n\n" & skillsPrompt
 
 proc historyToChat(history: seq[Message]): seq[ChatMessage] =
-  for m in history:
-    case m.kind
-    of mkUser:
-      result.add ChatMessage(role: "user", content: m.userContent)
-    of mkAssistant:
-      var tcs: seq[JsonNode] = @[]
-      for c in m.assistantContent:
-        if c.kind == ctToolCall:
-          tcs.add %*{
-            "id": c.id, "type": "function",
-            "function": {"name": c.name, "arguments": $c.arguments}
-          }
-      result.add ChatMessage(role: "assistant",
-        content: if m.assistantContent.len == 0: "" else: m.assistantContent[0].text,
-        toolCalls: tcs)
-    of mkToolResult:
-      result.add ChatMessage(role: "tool", toolCallId: m.toolCallId, toolName: m.toolName, content: m.toolText)
+  ## 委托给 messages.convertToLlm（对齐 pi convertToLlm）。
+  result = convertToLlm(history)
 
 proc runConversation*(driver: AgentDriver, session: var Session,
                       userInput: string,
