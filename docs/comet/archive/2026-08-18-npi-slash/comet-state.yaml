@@ -1,0 +1,247 @@
+schema: comet.native.v4
+name: npi-slash
+language: zh-CN
+phase: archive
+status: done
+state_version: 8
+brief: brief.md
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/npi-slash
+  target_branch: master
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 实现 slash 命令系统：用户以 `/cmd [arg]` 输入命令，TUI 与 REPL 统一解析分发，而非硬编码个别命令。
+    result: passed
+    reason:
+      text: 实现 slash 命令系统，TUI/REPL 统一分发
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/slash.nim`："
+    result: passed
+    reason:
+      text: src/slash.nim：命令类型/注册表/解析/分发
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`SlashCommand` 类型（name/description/argumentHint/handler）"
+    result: passed
+    reason:
+      text: 内置命令：quit/help/model/compact/new/resume/session
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: 内置命令注册表：quit、help、model、compact、new、resume、session
+    result: passed
+    reason:
+      text: parseSlash 拆分命令与参数
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`parseSlash`：把输入分成 (command, argument)，仅当以 `/` 开头"
+    result: passed
+    reason:
+      text: TUI 与 REPL 统一 / 开头走命令
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: "`handleSlash`：分发到命令处理器"
+    result: passed
+    reason:
+      text: help 列表对齐 pi BUILTIN 风格
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: TUI 与 REPL 统一：输入以 `/` 开头且是已知命令 → 执行命令；否则走对话
+    result: passed
+    reason:
+      text: 内置注册表含 7+ 命令
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: 暴露 `help` 列出全部命令（对齐 pi BUILTIN_SLASH_COMMANDS 风格）
+    result: passed
+    reason:
+      text: parseSlash 正确拆分 /cmd 与 /cmd arg
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 内置命令注册表含 quit/help/model/compact/new/resume/session"
+    result: passed
+    reason:
+      text: 非 / 开头不当作命令
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] parseSlash 正确拆分命令与参数（/cmd、/cmd arg）"
+    result: passed
+    reason:
+      text: 未知命令提示不崩溃
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 非 `/` 开头输入不被当作命令"
+    result: passed
+    reason:
+      text: TUI /quit 退出 /help 列命令
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 未知命令给出提示不崩溃"
+    result: passed
+    reason:
+      text: REPL 支持命令（冒烟验证）
+      truncated: false
+  - id: A13
+    source: specs/core/spec.md
+    text: "[ ] TUI 里 /quit 退出、/help 列命令"
+    result: passed
+    reason:
+      text: 单测覆盖解析与分发（6 个）
+      truncated: false
+  - id: A14
+    source: specs/core/spec.md
+    text: "[ ] REPL 同样支持命令"
+    result: passed
+    reason:
+      text: 修复 NPI_CONTEXT_WINDOW 空值 parseInt 崩溃
+      truncated: false
+  - id: A15
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖解析与分发"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 27 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 0818b485-6cde-4b47-84d2-0506bc266b03
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:34db83e5-daf9-4215-bcd7-f02e7ae674d8
+  iteration: 1
+  summary:
+    text: 实现 slash 命令系统：SlashCommand
+      注册表（quit/help/model/compact/new/resume/session/skill）、parseSlash
+      拆分命令与参数、handleSlash 统一分发；TUI/REPL 以 /cmd 统一处理；顺带修复 NPI_CONTEXT_WINDOW 空值
+      parseInt 崩溃。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 26 单测全绿（含 6 个 slash 测试）
+        truncated: false
+    - name:
+        text: repl-smoke
+        truncated: false
+      result: passed
+      note:
+        text: REPL /help 列全命令、/quit 退出正常
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: extensions/prompt/skill 来源命令注册待后续 change
+      truncated: false
+    - text: model/session 选择器 UI 待后续 change
+      truncated: false
+    - text: export HTML / gist share 待后续 change
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T01:39:04.852Z
+blockers: []
+verification:
+  candidate_id: 0818b485-6cde-4b47-84d2-0506bc266b03
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:2a57ea36-1512-4305-b397-ab4d7722a562
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-slash-ut
+      name:
+        text: NPI Slash 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_slash_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 1320
+  summary:
+    text: NPI Slash 验收全过：comet Runtime 用 brew nim 实跑单测 27 OK，REPL /help 列全命令 /quit
+      正常退出。
+    truncated: false
+  risks:
+    - text: extensions/prompt/skill 来源命令注册待后续 change
+      truncated: false
+    - text: model/session 选择器 UI 待后续 change
+      truncated: false
+    - text: export HTML / gist share 待后续 change
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T01:39:43.074Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Slash 验收全过：comet Runtime 用 brew nim 实跑单测 27 OK，REPL /help 列全命令 /quit
+        正常退出。
+      truncated: false
+    completed_at: 2026-08-18T01:39:43.074Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-18T01:30:58.851Z

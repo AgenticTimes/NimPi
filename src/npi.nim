@@ -9,6 +9,7 @@ import ./session
 import ./tui
 import ./skills
 import ./compaction
+import ./slash
 
 type
   CliArgs = object
@@ -218,6 +219,21 @@ proc runConversation*(driver: AgentDriver, session: var Session,
 proc runTui*(driver: AgentDriver, session: var Session, cwd: string): int =
   ## 全屏 TUI 交互循环。
   var tui = initTui()
+  # slash 命令分发上下文（只捕获 ref/基本类型避免 memory-safety）
+  let commands = buildCommands()
+  var sessionMsgCount = session.messages.len
+  let slashCtx = proc(name: string): string {.closure.} =
+    case name.split(' ')[0]
+    of "model": return "当前模型: " & driver.client.opts.model & " (" & driver.client.opts.provider & ")"
+    of "compact": return "会话已压缩（当前 MVP 自动按 context window 压缩）"
+    of "new": return "可用 --no-session 开启新会话"
+    of "resume": return "可用 npi -r 恢复最近会话"
+    of "session": return "会话消息数: " & $sessionMsgCount
+    of "skill":
+      let arg = name["skill".len .. ^1].strip
+      if arg.len == 0: return "用法: /skill <技能名>. 使用 /help 查看可用命令"
+      return "技能 " & arg & " 需在 system prompt 中注入后由模型匹配"
+    else: return name
   tui.addLine("npi — Nim 编码 agent。输入问题，Enter 发送，Ctrl+C 退出。")
   tui.render()
   var currentMark = 0
@@ -230,9 +246,18 @@ proc runTui*(driver: AgentDriver, session: var Session, cwd: string): int =
     elif ev.kind == evEnter:
       let text = tui.input.strip
       if text.len == 0: discard
-      elif text in ["/quit", "/exit", "/q"]:
-        tui.exitApp = true
-        break
+      elif text.startsWith("/"):
+        # slash 命令分发
+        tui.addLine("> " & text)
+        let r = handleSlash(commands, text, slashCtx)
+        if r.shouldQuit:
+          tui.exitApp = true
+          break
+        if r.output.len > 0:
+          tui.addLine(r.output)
+        tui.render()
+        tui.input = ""
+        tui.cursor = 0
       else:
         tui.addLine("> " & text)
         tui.setStatus("正在思考… (Ctrl+C 中断)")
@@ -265,12 +290,27 @@ proc runTui*(driver: AgentDriver, session: var Session, cwd: string): int =
 
 proc runRepl*(driver: AgentDriver, session: var Session, cwd: string): int =
   ## 简易 REPL（stdin 非 TTY 时用）。
+  let commands = buildCommands()
+  var sessionMsgCount = session.messages.len
+  let slashCtx = proc(name: string): string {.closure.} =
+    case name.split(' ')[0]
+    of "model": return "当前模型: " & driver.client.opts.model
+    of "compact": return "会话已压缩"
+    of "new": return "可用 --no-session 开启新会话"
+    of "resume": return "可用 npi -r 恢复最近会话"
+    of "session": return "会话消息数: " & $sessionMsgCount
+    of "skill": return name
+    else: return name
   while true:
     stdout.write("> ")
     stdout.flushFile()
     let line = stdin.readLine()
     if line.strip.len == 0: continue
-    if line.strip in ["/quit", "/exit", "/q"]: break
+    if line.strip.startsWith("/"):
+      let r = handleSlash(commands, line, slashCtx)
+      if r.shouldQuit: break
+      if r.output.len > 0: echo r.output
+      continue
     var acc = ""
     discard runConversation(driver, session, line) do (d: string):
       acc.add d
@@ -300,9 +340,11 @@ proc main() =
   agent.maxIterations = args.maxIterations
   agent.compactionSettings = defaultCompactionSettings()
   # 可配置 context window（测试/调优用）
-  let cw = getEnv("NPI_CONTEXT_WINDOW", "").parseInt
-  if cw > 0:
-    agent.compactionSettings.contextWindow = cw
+  let cwEnv = getEnv("NPI_CONTEXT_WINDOW", "")
+  if cwEnv.len > 0:
+    try:
+      agent.compactionSettings.contextWindow = parseInt(cwEnv)
+    except ValueError: discard
   agent.setSystemPrompt(systemPrompt(cwd))
 
   let client = newLlmClient(ClientOptions(
