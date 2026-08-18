@@ -1,32 +1,197 @@
 schema: comet.native.v4
 name: npi-messages
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-messages
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 的 compaction 摘要对齐 pi 的标准格式：`<summary>` XML 包裹，替代当前无格式前缀拼接。
+    result: passed
+    reason:
+      text: compaction 摘要对齐 pi <summary> XML 格式
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/messages.nim`："
+    result: passed
+    reason:
+      text: src/messages.nim：PREFIX/SUFFIX/format/createCompactionSummaryMessage/toUserText
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`COMPACTION_SUMMARY_PREFIX/SUFFIX` 常量（对齐 pi）"
+    result: passed
+    reason:
+      text: COMPACTION_SUMMARY_PREFIX/SUFFIX 与 pi 一致
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`formatCompactionSummary(summary)`：`PREFIX + summary + SUFFIX`"
+    result: passed
+    reason:
+      text: formatCompactionSummary <summary> 包裹
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`createCompactionSummaryMessage(summary, tokensBefore)`：返回带摘要的消息（对齐 pi
+      结构）"
+    result: passed
+    reason:
+      text: createCompactionSummaryMessage 结构对齐
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 接入 compaction.nim：prepareCompaction 的 summary 用 formatCompactionSummary 包裹
+    result: passed
+    reason:
+      text: compaction 摘要接入新格式
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] COMPACTION_SUMMARY_PREFIX/SUFFIX 常量与 pi 一致"
+    result: passed
+    reason:
+      text: PREFIX/SUFFIX 常量（单测）
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] formatCompactionSummary 用 <summary> 包裹"
+    result: passed
+    reason:
+      text: formatCompactionSummary（单测）
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] createCompactionSummaryMessage 含 summary+tokensBefore"
+    result: passed
+    reason:
+      text: createCompactionSummaryMessage（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] compaction 摘要接入新格式"
+    result: passed
+    reason:
+      text: compaction 接入 <summary>（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 74 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 81afa924-4ea9-4d2b-a7d5-14d4f1217ba1
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:bd0ec1a2-2d7b-4b18-88ad-5b79537b7ba2
+  iteration: 1
+  summary:
+    text: 实现消息工厂对齐 pi messages.ts：COMPACTION_SUMMARY_PREFIX/SUFFIX <summary> XML
+      格式、BRANCH_SUMMARY_PREFIX/SUFFIX、formatCompactionSummary/formatBranchSummary、createCompactionSummaryMessage(role/summary/tokensBefore/timestamp)、toUserText
+      转 user 消息；接入 compaction prepareCompaction 的 summary 用 <summary> 包裹。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 74 单测全绿（含 5 个 messages 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: bashExecution/custom/branchSummary 消息类型待后续
+      truncated: false
+    - text: convertToLlm 全量待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T05:38:47.608Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: 81afa924-4ea9-4d2b-a7d5-14d4f1217ba1
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:d57e20a1-e1c5-45a7-88af-2b103c80f3b0
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-msg-ut
+      name:
+        text: NPI Messages 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_msg_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 2175
+  summary:
+    text: NPI Messages 验收全过：comet Runtime 用 brew nim 实跑单测 74 OK，compaction 摘要已用
+      <summary> XML 格式。
+    truncated: false
+  risks:
+    - text: bashExecution/custom/branchSummary 消息类型待后续
+      truncated: false
+    - text: convertToLlm 全量待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T05:39:06.055Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Messages 验收全过：comet Runtime 用 brew nim 实跑单测 74 OK，compaction 摘要已用
+        <summary> XML 格式。
+      truncated: false
+    completed_at: 2026-08-18T05:39:06.055Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +202,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-18T05:36:56.938Z
