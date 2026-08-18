@@ -15,6 +15,7 @@ import ../src/grep
 import ../src/find
 import ../src/lsdir
 import ../src/gitignore
+import ../src/messages
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -519,3 +520,41 @@ suite "gitignore":
     check "important.txt" in j2
     check "ignored.txt" notin j2         # 被忽略
     check "debug.log" notin j2           # *.log 忽略
+
+suite "messages":
+  test "COMPACTION_SUMMARY_PREFIX/SUFFIX 对齐 pi":
+    check CompactionSummaryPrefix.contains("compacted into the following summary")
+    check CompactionSummaryPrefix.contains("<summary>")
+    check CompactionSummarySuffix.contains("</summary>")
+
+  test "formatCompactionSummary 用 <summary> 包裹":
+    let s = formatCompactionSummary("核心内容")
+    check s.startsWith("The conversation history")
+    check "<summary>" in s
+    check "核心内容" in s
+    check "</summary>" in s
+
+  test "createCompactionSummaryMessage 含 summary+tokensBefore":
+    let m = createCompactionSummaryMessage("摘要", 500, 12345)
+    check m.role == "compactionSummary"
+    check m.summary == "摘要"
+    check m.tokensBefore == 500
+
+  test "toUserText 转为 user 消息文本":
+    let m = createCompactionSummaryMessage("s1", 100, 0)
+    let t = m.toUserText()
+    check "<summary>" in t
+    check "s1" in t
+
+  test "compaction summary 接入 <summary> 格式":
+    var settings = defaultCompactionSettings()
+    settings.contextWindow = 500
+    settings.reserveTokens = 50
+    settings.keepRecentTokens = 100
+    var msgs: seq[Message] = @[]
+    for i in 0 ..< 30:
+      msgs.add Message(kind: mkUser, userContent: repeat("y", 100))
+    let r = prepareCompaction(msgs, settings)
+    check r.compacted
+    check "<summary>" in r.summary
+    check "</summary>" in r.summary

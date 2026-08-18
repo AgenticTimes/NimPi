@@ -3,6 +3,7 @@
 
 import std/[strutils]
 import ./types
+import ./messages
 
 type
   CompactionSettings* = object
@@ -105,4 +106,4 @@ proc prepareCompaction*(messages: seq[Message],
     result.cutIndex = -1
     return
   result.messagesToSummarize = messages[0 ..< result.cutIndex]
-  result.summary = result.messagesToSummarize.summarizeMessages()
+  result.summary = formatCompactionSummary(result.messagesToSummarize.summarizeMessages())
