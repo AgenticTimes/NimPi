@@ -68,3 +68,20 @@ suite "anthropic wire":
     check last["content"][0]["type"].getStr == "tool_result"
     check last["content"][0]["tool_use_id"].getStr == "toolu_1"
     check last["content"][0]["content"].getStr == "result-text"
+
+suite "gemini wire":
+  test "buildGeminiBody 工具声明转换":
+    let t = toolSchema("read", "Read", %*{"type": "object",
+      "properties": {"path": {"type": "string"}}, "required": ["path"]})
+    let b = buildGeminiBody(@[], @[t], "gemini-x")
+    check b["contents"].len == 0
+    check b["tools"][0]["functionDeclarations"][0]["name"].getStr == "read"
+    check b["tools"][0]["functionDeclarations"][0]["parameters"]["properties"]["path"]["type"].getStr == "string"
+
+  test "buildGeminiBody functionResponse 消息":
+    let m = ChatMessage(role: "tool", toolCallId: "fc1", toolName: "read", content: "data")
+    let b = buildGeminiBody(@[m], @[], "gemini-x")
+    let last = b["contents"][0]
+    check last["role"].getStr == "user"
+    check last["content"]["parts"][0]["functionResponse"]["name"].getStr == "read"
+    check last["content"]["parts"][0]["functionResponse"]["response"]["output"].getStr == "data"
