@@ -1,7 +1,7 @@
 ## Find 工具：对齐 pi `tools/find.ts` 的 glob 文件查找。
 ## 纯 Nim 递归遍历 + glob 匹配（*、?、**），跳过隐藏，返回相对路径。
 
-import std/[os, strutils, algorithm, sequtils, re]
+import std/[os, strutils, algorithm, re]
 
 const
   DefaultFindLimit = 50
