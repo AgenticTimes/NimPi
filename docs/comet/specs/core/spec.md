@@ -1,24 +1,22 @@
-# NPI BashTimeout — Specification
+# NPI PathUtils — Specification
 
 ## 目标
-为 npi 的 bash 工具实现超时控制（对齐 pi bash-executor 的 timeout/取消语义），命令挂死可终止。
+为 npi 实现路径解析（对齐 pi path-utils.ts）：用户输入的路径规范化与容错解析。
 
 ## 范围
-- `src/bashtimeout.nim`：
-  - `BashTimeoutOptions`：timeoutMs（默认 120000，对齐 pi）、cwd
-  - `execBashWithTimeout(cmd, opts)`：startProcess(/bin/sh -c) + poll 轮询，超时 terminate+kill 进程树，输出经临时文件收集
-  - 返回 (output, exitCode, timedOut)
-- 接入 agent.nim 的 bash 工具：替换 execCmdEx
+- `src/pathutils.nim`：
+  - `expandPath(p)`：~ 展开、去 @ 前缀、unicode 空格归一（\u202F → 普通空格）
+  - `resolveToCwd(p, cwd)`：相对 cwd 解析（含 ~/绝对路径）
+  - `resolveReadPath(p, cwd)`：解析后若不存在，尝试 macOS 变体（AM/PM 窄空格、NFD、弯引号）
+- 接入 read 工具（可选）：resolveReadPath 用于读路径
 
 ## 非目标
-- 流式输出回调 —— 输出收集即可
-- 信号取消（SIGINT 触发）—— 仅超时
-- Windows 兼容 —— macOS/Linux
+- 完整 unicode 规范化（NFD 转换需要 unicode 库）—— 基本变体即可
+- 异步版本 —— 同步即可
 
 ## 验收
-- [ ] 正常命令返回输出+退出码
-- [ ] 超时命令被终止并标记 timedOut
-- [ ] 超时后子进程也被杀（进程树）
-- [ ] 输出完整收集（含 stderr）
-- [ ] agent bash 接入
+- [ ] expandPath ~ 展开 + @ 前缀去除
+- [ ] resolveToCwd 相对/绝对/~ 解析
+- [ ] resolveReadPath macOS AM/PM 变体
+- [ ] resolveReadPath 弯引号变体
 - [ ] 单测覆盖
