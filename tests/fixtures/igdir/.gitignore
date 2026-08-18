@@ -1,0 +1,4 @@
+ignored.txt
+ignored_dir/
+!important.txt
+*.log
