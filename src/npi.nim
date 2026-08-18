@@ -1,7 +1,7 @@
 ## npi — 极简编码 agent（Nim）入口。
 ## `npi -p "..."` 打印模式 · `npi` 全屏 TUI（stdin 非 TTY 时退化为 REPL）· `-r` 恢复最近会话。
 
-import std/[os, strutils, asyncdispatch, json, terminal]
+import std/[os, strutils, asyncdispatch, json, terminal, tables]
 import ./types
 import ./llm
 import ./agent
@@ -10,6 +10,7 @@ import ./tui
 import ./skills
 import ./compaction
 import ./slash
+import ./templates
 
 type
   CliArgs = object
@@ -235,6 +236,7 @@ proc runTui*(driver: AgentDriver, session: var Session, cwd: string): int =
       return "技能 " & arg & " 需在 system prompt 中注入后由模型匹配"
     else: return name
   tui.addLine("npi — Nim 编码 agent。输入问题，Enter 发送，Ctrl+C 退出。")
+  let templates = loadTemplates(cwd)  # 加载 prompt 模板
   tui.render()
   var currentMark = 0
   while not tui.exitApp:
@@ -244,11 +246,19 @@ proc runTui*(driver: AgentDriver, session: var Session, cwd: string): int =
       tui.exitApp = true
       break
     elif ev.kind == evEnter:
-      let text = tui.input.strip
-      if text.len == 0: discard
-      elif text.startsWith("/"):
+      let text0 = tui.input.strip
+      if text0.len == 0: discard
+      # prompt 模板展开优先：/name 命中模板 → 替换为展开内容转为对话
+      var text = text0
+      if text0.startsWith("/") and not commands.hasKey(parseSlash(text0).command):
+        let expanded = expandPromptTemplate(text0, templates)
+        if expanded != text0:
+          tui.addLine("> " & text0 & "（模板展开）")
+          text = expanded
+      if text.startsWith("/"):
         # slash 命令分发
-        tui.addLine("> " & text)
+        if text == text0 and text0.startsWith("/"):
+          tui.addLine("> " & text)
         let r = handleSlash(commands, text, slashCtx)
         if r.shouldQuit:
           tui.exitApp = true
@@ -306,13 +316,20 @@ proc runRepl*(driver: AgentDriver, session: var Session, cwd: string): int =
     stdout.flushFile()
     let line = stdin.readLine()
     if line.strip.len == 0: continue
-    if line.strip.startsWith("/"):
-      let r = handleSlash(commands, line, slashCtx)
+    let templates = loadTemplates(cwd)
+    var input = line.strip
+    # 模板展开优先（/name 命中模板且非 slash 命令 → 转对话）
+    if input.startsWith("/") and not commands.hasKey(parseSlash(input).command):
+      let expanded = expandPromptTemplate(input, templates)
+      if expanded != input:
+        input = expanded
+    if input.startsWith("/"):
+      let r = handleSlash(commands, input, slashCtx)
       if r.shouldQuit: break
       if r.output.len > 0: echo r.output
       continue
     var acc = ""
-    discard runConversation(driver, session, line) do (d: string):
+    discard runConversation(driver, session, input) do (d: string):
       acc.add d
       stdout.write(d)
       stdout.flushFile()
