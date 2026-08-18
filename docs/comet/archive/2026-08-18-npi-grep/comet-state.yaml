@@ -1,0 +1,239 @@
+schema: comet.native.v4
+name: npi-grep
+language: zh-CN
+phase: archive
+status: done
+state_version: 8
+brief: brief.md
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/npi-grep
+  target_branch: master
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 的 grep 工具实现纯 Nim 核心搜索，对齐 pi `grep.ts`：不依赖 shell grep，直接按行搜索。
+    result: passed
+    reason:
+      text: 纯 Nim grep 核心搜索，对齐 pi tools/grep.ts
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/grep.nim`："
+    result: passed
+    reason:
+      text: src/grep.nim：GrepOptions/GrepMatch/grepFile/grepPath
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`GrepOptions`：pattern、path、caseSensitive、fixedString（正则或字面）、context（前后行数\
+      ）、maxMatches"
+    result: passed
+    reason:
+      text: grepFile 按行搜索返回匹配+行号
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`grepFile(path, opts)`：按行搜索，返回匹配行 + 行号"
+    result: passed
+    reason:
+      text: path:line:text 输出格式
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`grepPath(path, opts)`：遍历目录（跳过 .git/隐藏），聚合匹配"
+    result: passed
+    reason:
+      text: fixedString 字面 / caseSensitive 支持
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 输出格式 `path:line:text`（对齐 pi）
+    result: passed
+    reason:
+      text: context 上下文行
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: 行截断到 GREP_MAX_LINE_LENGTH（500）附 [truncated]；匹配上限限制
+    result: passed
+    reason:
+      text: 匹配上限 + 行截断 [truncated]
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: 接入 agent.nim 的 grep 工具：优先 grepPath，路径不存在/目录退化为原逻辑
+    result: passed
+    reason:
+      text: grepPath 遍历目录跳过隐藏
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] grepFile 返回匹配行+行号"
+    result: passed
+    reason:
+      text: agent grep 工具接入替换 shell
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] path:line:text 输出格式"
+    result: passed
+    reason:
+      text: grepFile 匹配（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] fixedString / caseSensitive / 正则支持"
+    result: passed
+    reason:
+      text: grepPath 目录遍历（单测）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] context 上下文行"
+    result: passed
+    reason:
+      text: context 上下文（单测）
+      truncated: false
+  - id: A13
+    source: specs/core/spec.md
+    text: "[ ] 匹配上限 + 行截断"
+    result: passed
+    reason:
+      text: 行截断（单测）
+      truncated: false
+  - id: A14
+    source: specs/core/spec.md
+    text: "[ ] grepPath 遍历目录"
+    result: passed
+    reason:
+      text: 无匹配返回空（单测）
+      truncated: false
+  - id: A15
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 54 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 39aad135-5782-407a-ad0c-3ad9d28ed70c
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:01c8cf19-1ad5-4ec6-b904-0d6c5329f73b
+  iteration: 1
+  summary:
+    text: 实现纯 Nim grep：grepFile（按行搜索 fixed/regex）、grepPath（目录遍历跳过 .git/隐藏）、context
+      上下文行、path:line:text 格式、行截断
+      GREP_MAX_LINE_LENGTH(500)+[truncated]、匹配上限；agent grep 工具接入替换 shell grep。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 54 单测全绿（含 5 个 grep 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: .gitignore 解析待后续
+      truncated: false
+    - text: 二进制文件过滤待后续
+      truncated: false
+    - text: 多目录 glob 待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T04:41:02.700Z
+blockers: []
+verification:
+  candidate_id: 39aad135-5782-407a-ad0c-3ad9d28ed70c
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:8c439bc2-1b75-4618-95e8-30578335fcd4
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-grep-ut
+      name:
+        text: NPI Grep 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_grep_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 1595
+  summary:
+    text: NPI Grep 验收全过：comet Runtime 用 brew nim 实跑单测 54 OK，agent grep 工具已接入纯 Nim 搜索。
+    truncated: false
+  risks:
+    - text: .gitignore 解析待后续
+      truncated: false
+    - text: 二进制文件过滤待后续
+      truncated: false
+    - text: 多目录 glob 待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T04:41:50.736Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Grep 验收全过：comet Runtime 用 brew nim 实跑单测 54 OK，agent grep 工具已接入纯 Nim
+        搜索。
+      truncated: false
+    completed_at: 2026-08-18T04:41:50.736Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-18T04:34:01.842Z
