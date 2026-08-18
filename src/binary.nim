@@ -1,7 +1,7 @@
 ## 二进制检测：grep/read 跳过二进制文件避免乱码输出。
 ## NUL 字节 + 控制字符比例阈值检测。
 
-import std/[os, strutils, unicode]
+import std/[os]
 
 const
   BinarySampleLen = 1024        ## 检测采样长度
@@ -34,7 +34,7 @@ proc isBinaryFile*(path: string): bool =
   try:
     let f = open(path, fmRead)
     var buf = newString(BinarySampleLen)
-    let n = f.readChars(buf, 0, BinarySampleLen)
+    let n = readBuffer(f, buf[0].addr, BinarySampleLen)
     f.close()
     if n > 0:
       buf.setLen(n)
