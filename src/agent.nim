@@ -5,6 +5,7 @@ import std/[json, strutils, os, osproc]
 import ./types
 import ./compaction
 import ./truncate
+import ./shell
 
 type
   ToolResultRaw* = tuple
@@ -87,7 +88,8 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
     if cmd.len == 0: return ("", name, "error: missing command", true)
     try:
       let (outp, code) = execCmdEx(cmd, options = {poUsePath, poStdErrToStdOut})
-      let t = truncateTail(outp, defaultTruncationOptions())
+      let cleaned = outp.sanitizeShellOutput()
+      let t = truncateTail(cleaned, defaultTruncationOptions())
       let text = if t.truncated: t.content & "\n... [truncated " & formatSize(t.totalBytes) &
                     ", showing last " & $t.outputLines & " lines]"
                  else: t.content
