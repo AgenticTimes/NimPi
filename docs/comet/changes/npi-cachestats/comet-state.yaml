@@ -1,32 +1,216 @@
 schema: comet.native.v4
 name: npi-cachestats
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-cachestats
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 实现 prompt cache 缺失检测（对齐 pi cache-stats.ts 核心）：判断每轮请求是否有效利用缓存。
+    result: passed
+    reason:
+      text: prompt 缓存缺失检测对齐 pi cache-stats.ts 核心
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/cachestats.nim`："
+    result: passed
+    reason:
+      text: src/cachestats.nim：CACHE_TTL_MS/PreviousRequest/detectMiss/addMiss
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`CACHE_TTL_MS` 常量（5 分钟，对齐 pi）"
+    result: passed
+    reason:
+      text: CACHE_TTL_MS 常量
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`PreviousRequest`：promptTokens/modelKey/timestamp/reportedCache"
+    result: passed
+    reason:
+      text: detectMiss 首轮不计
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`detectMiss(prev, usage, now)`：missedTokens = min(prev.promptTokens,
+      promptTokens) - cacheRead；低于噪声底线(1024)不计；首轮/无缓存活动不计"
+    result: passed
+    reason:
+      text: 缓存命中不计
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: "`CacheWaste` 累计（missedTokens/missCount）"
+    result: passed
+    reason:
+      text: 未命中计入 missedTokens
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: 接入（可选）：runConversation 每轮检测
+    result: passed
+    reason:
+      text: 噪声底线过滤
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] CACHE_TTL_MS 常量"
+    result: passed
+    reason:
+      text: CacheWaste 累计
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] detectMiss 首轮不计"
+    result: passed
+    reason:
+      text: TTL 常量（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] 缓存命中时 missedTokens 小/0"
+    result: passed
+    reason:
+      text: detectMiss 首轮/命中/未命中（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 未命中时 missedTokens = 差值"
+    result: passed
+    reason:
+      text: 噪声过滤（单测）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 噪声底线过滤"
+    result: passed
+    reason:
+      text: addMiss 累计（单测）
+      truncated: false
+  - id: A13
+    source: specs/core/spec.md
+    text: "[ ] CacheWaste 累计"
+    result: passed
+    reason:
+      text: promptTokensOf 辅助
+      truncated: false
+  - id: A14
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 115 项）
+      truncated: false
+builder_handoff:
+  candidate_id: c6ae2d9f-09b9-40bd-beca-da90d28dc4b8
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:6c29a8d7-1d5e-4f5d-b5b9-83e9fe5cfa30
+  iteration: 1
+  summary:
+    text: 实现 prompt 缓存缺失检测对齐 pi cache-stats.ts
+      核心：CACHE_TTL_MS(5min)、PreviousRequest、detectMiss（missedTokens=min(prev,prompt)-cacheRead，首轮/无缓存活动/噪声线<1024
+      不计）、CacheWaste 累计 addMiss。无成本模型简化。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 115 单测全绿（含 6 个 cachestats 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 成本计算（missedCost）待后续
+      truncated: false
+    - text: 模型变化检测简化跳过
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T16:39:47.382Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: c6ae2d9f-09b9-40bd-beca-da90d28dc4b8
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:67a6ab11-ea50-423b-bc52-dbf4b8fb572c
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-cs-ut
+      name:
+        text: NPI CacheStats 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_cs_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 3103
+  summary:
+    text: NPI CacheStats 验收全过：comet Runtime 实跑 115 单测 OK。
+    truncated: false
+  risks:
+    - text: 成本计算（missedCost）待后续
+      truncated: false
+    - text: 模型变化检测简化跳过
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T16:40:00.603Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI CacheStats 验收全过：comet Runtime 实跑 115 单测 OK。
+      truncated: false
+    completed_at: 2026-08-18T16:40:00.603Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +221,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-18T16:38:48.242Z
