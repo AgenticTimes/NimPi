@@ -1,25 +1,25 @@
-# NPI Ls — Specification
+# NPI GitIgnore — Specification
 
 ## 目标
-为 npi 的 ls 工具实现 pi 的格式语义：排序、目录标记、dotfiles、上限。
+为 npi 的 grep/find 工具实现 .gitignore 尊重（对齐 pi：respects .gitignore）。
 
 ## 范围
-- `src/lsdir.nim`：
-  - `listDir(path, limit)`：读取目录项，字母序排序，目录加 `/` 后缀，含 dotfiles
-  - 条目上限（默认 500，对齐 pi DEFAULT_LIMIT）
-  - 输出经 truncateHead 字节截断（50KB）
-  - 返回条目 + 截断/上限通知
-- 接入 agent.nim 的 ls 工具：替换无格式 walkDir
+- `src/gitignore.nim`：
+  - `GitIgnoreRule`：pattern、negated(!)、anchored(/)等
+  - `parseGitIgnore(content)`：逐行解析（注释/空行跳过）
+  - `buildIgnoreMatcher(root)`：从 root 向上收集 .gitignore/.ignore/.fdignore 累积规则
+  - `isIgnored(path, matcher)`：路径匹配判定（含 ! 取反）
+  - glob 匹配复用 find.nim 的 glob 语义（*、**、锚定）
+- 接入 grepPath/findPath：跳过 isIgnored 的文件/目录
 
 ## 非目标
-- 符号链接解析 —— 后续
-- 递归列目录 —— 后续
+- 完整 gitignore 规范（! 目录反转、** 特殊语义）—— MVP 子集
+- git 内建规则（.git/info/exclude、global）—— 后续
 
 ## 验收
-- [ ] 字母序排序
-- [ ] 目录加 / 后缀
-- [ ] 含 dotfiles
-- [ ] 条目上限
-- [ ] truncateHead 截断
-- [ ] agent ls 接入
+- [ ] 解析 .gitignore 规则（注释/空行/!取反/锚定）
+- [ ] 沿目录向上累积规则
+- [ ] isIgnored 判定匹配
+- [ ] ! 取反覆盖
+- [ ] grepPath/findPath 跳过忽略
 - [ ] 单测覆盖
