@@ -14,6 +14,7 @@ import ../src/shell
 import ../src/grep
 import ../src/find
 import ../src/lsdir
+import ../src/gitignore
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -470,3 +471,51 @@ suite "ls":
     # 空目录
     var empty = LsResult()
     check formatLs(empty).contains("空目录")
+
+suite "gitignore":
+  test "parseGitIgnore 解析规则":
+    let rules = parseGitIgnore("ignored.txt\n!important.txt\nignored_dir/\n*.log\n\n# comment\n")
+    # ignored.txt / important(!) / ignored_dir(dirOnly) / *.log = 4 规则（注释/空行跳过）
+    check rules.len == 4
+    check rules[0].pattern == "ignored.txt"
+    check not rules[0].negated
+    check rules[1].negated
+    check rules[2].dirOnly
+    check rules[3].pattern == "*.log"
+
+  test "isIgnored 匹配 + !取反":
+    var m = GitIgnoreMatcher(rules: parseGitIgnore("ignored.txt\n!important.txt\n"))
+    check isIgnored(m, "ignored.txt", false)
+    check not isIgnored(m, "important.txt", false)
+    check not isIgnored(m, "keep.txt", false)
+
+  test "isIgnored 目录后缀仅匹配目录":
+    var m = GitIgnoreMatcher(rules: parseGitIgnore("ignored_dir/\n"))
+    check isIgnored(m, "ignored_dir", true)
+    check not isIgnored(m, "ignored_dir", false)
+
+  test "grepPath 跳过 .gitignore 忽略文件":
+    var o = defaultGrepOptions()
+    o.pattern = "x"   # 所有文件都含 x
+    let m = grepPath("tests/fixtures/igdir", o)
+    var paths: seq[string] = @[]
+    for x in m: paths.add x.text
+    let joined = paths.join(" ")
+    check "keep.txt" in joined
+    check "ignored.txt" notin joined       # 被忽略
+    check "debug.log" notin joined         # *.log 被忽略
+    check "ignored_dir" notin joined       # 目录被忽略
+
+  test "findPath 跳过 .gitignore 忽略":
+    # **/* 匹配深层（含子目录文件），根文件用 * 列
+    let r = findPath("tests/fixtures/igdir", FindOptions(pattern: "**/*"))
+    let joined = r.join(" ")
+    check "sub/deep.txt" in joined
+    check "ignored_dir" notin joined     # 目录被忽略
+    # 根文件：*.txt（ignored.txt/keep.txt/important.txt 均在根）
+    let r2 = findPath("tests/fixtures/igdir", FindOptions(pattern: "*.txt"))
+    let j2 = r2.join(" ")
+    check "keep.txt" in j2
+    check "important.txt" in j2
+    check "ignored.txt" notin j2         # 被忽略
+    check "debug.log" notin j2           # *.log 忽略

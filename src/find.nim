@@ -2,6 +2,7 @@
 ## 纯 Nim 递归遍历 + glob 匹配（*、?、**），跳过隐藏，返回相对路径。
 
 import std/[os, strutils, algorithm, re]
+import ./gitignore
 
 const
   DefaultFindLimit = 50
@@ -63,9 +64,10 @@ proc findPath*(root: string, opts: FindOptions): seq[string] =
   if not dirExists(root):
     return
   let limit = if opts.limit > 0: opts.limit else: DefaultFindLimit
+  let matcher = buildIgnoreMatcher(root)
   var found: seq[string] = @[]
 
-  proc walk(dir: string, relDir: string, found: var seq[string]) =
+  proc walk(dir: string, relDir: string, found: var seq[string], m: GitIgnoreMatcher) =
     if found.len >= limit: return
     var entries: seq[string] = @[]
     for kind, p in walkDir(dir):
@@ -77,12 +79,15 @@ proc findPath*(root: string, opts: FindOptions): seq[string] =
       if not opts.includeHidden and isHiddenEntry(name):
         continue
       let relPath = if relDir.len == 0: name else: relDir / name
+      let pIsDir = dirExists(p)
+      if isIgnored(m, relPath, pIsDir):
+        continue
       if fileExists(p) and matchGlob(opts.pattern, relPath):
         found.add relPath
-      if dirExists(p):
-        walk(p, relPath, found)
+      if pIsDir:
+        walk(p, relPath, found, m)
 
-  walk(root, "", found)
+  walk(root, "", found, matcher)
   result = found
 
 proc formatFindResults*(results: seq[string]): string =

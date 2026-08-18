@@ -2,6 +2,7 @@
 ## 纯 Nim 按行搜索（不依赖 shell grep）：pattern / case / fixedString / context / 格式 path:line:text。
 
 import std/[os, strutils, re, algorithm]
+import ./gitignore
 
 const
   GrepMaxLineLength = 500
@@ -78,22 +79,25 @@ proc isSkipDir(dir: string): bool =
   base in [".git", ".npi", "node_modules", ".worktrees"] or base.startsWith(".")
 
 proc grepPath*(path: string, opts: GrepOptions): seq[GrepMatch] =
-  ## 遍历目录或文件，聚合匹配。
+  ## 遍历目录或文件，聚合匹配（尊重 .gitignore）。
   if fileExists(path):
     return grepFile(path, opts)
   if not dirExists(path):
     return
+  let matcher = buildIgnoreMatcher(path)
   var files: seq[string] = @[]
-  # 递归收集文件（跳过隐藏/.git 目录）
-  proc collect(d: string) =
+  # 递归收集文件（跳过隐藏/.git 与 .gitignore 忽略）
+  proc collect(d: string, m: GitIgnoreMatcher) =
     for kind, p in walkDir(d):
-      if kind == pcFile:
-        if not extractFilename(p).startsWith("."):
+      let rel = p
+      let isDir = kind == pcDir
+      if isDir:
+        if not isSkipDir(p) and not isIgnored(m, p, true):
+          collect(p, m)
+      elif kind == pcFile:
+        if not extractFilename(p).startsWith(".") and not isIgnored(m, p, false):
           files.add p
-      elif kind == pcDir:
-        if not isSkipDir(p):
-          collect(p)
-  collect(path)
+  collect(path, matcher)
   # 按文件排序保证稳定顺序，跨文件记录已输出数量
   files.sort()
   var total = 0
