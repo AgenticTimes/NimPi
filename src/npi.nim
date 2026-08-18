@@ -8,6 +8,7 @@ import ./agent
 import ./session
 import ./tui
 import ./skills
+import ./compaction
 
 type
   CliArgs = object
@@ -139,6 +140,19 @@ proc runConversation*(driver: AgentDriver, session: var Session,
   let userMsg = Message(kind: mkUser, userContent: userInput)
   session.append(userMsg)
   var history = session.messages
+
+  # 上下文压缩：超阈值则把最早消息压缩为摘要（对齐 pi compaction）
+  let compSettings = driver.agent.compactionSettings
+  let comp = prepareCompaction(history, compSettings)
+  if comp.compacted:
+    # 替换历史：摘要消息 + 最近保留消息
+    var newHistory: seq[Message] = @[]
+    if comp.summary.len > 0:
+      newHistory.add Message(kind: mkUser, userContent: comp.summary)
+    for i in comp.cutIndex ..< history.len:
+      newHistory.add history[i]
+    history = newHistory
+    session.messages = newHistory
 
   var msgs = @[ChatMessage(role: "system", content: driver.agent.systemPromptText)]
   msgs.add historyToChat(history)
@@ -284,6 +298,11 @@ proc main() =
   let cwd = getCurrentDir()
   var agent = newAgent(nil, cwd)
   agent.maxIterations = args.maxIterations
+  agent.compactionSettings = defaultCompactionSettings()
+  # 可配置 context window（测试/调优用）
+  let cw = getEnv("NPI_CONTEXT_WINDOW", "").parseInt
+  if cw > 0:
+    agent.compactionSettings.contextWindow = cw
   agent.setSystemPrompt(systemPrompt(cwd))
 
   let client = newLlmClient(ClientOptions(

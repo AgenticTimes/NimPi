@@ -5,6 +5,7 @@ import ../src/types
 import ../src/agent
 import ../src/llm
 import ../src/skills
+import ../src/compaction
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -127,3 +128,53 @@ suite "skills":
     check "disabled-skill" notin s        # 不注入 disabled
     check "<skill name=\"" in s
     check "<description>" in s
+
+suite "compaction":
+  test "estimateTokens chars/4 启发式":
+    check Message(kind: mkUser, userContent: "abcd").estimateTokens() == 1
+    check Message(kind: mkUser, userContent: "abcdefgh").estimateTokens() == 2
+    check Message(kind: mkUser, userContent: "a").estimateTokens() == 1   # 保底
+
+  test "shouldCompact 阈值判定":
+    var s = defaultCompactionSettings()
+    s.contextWindow = 1000
+    s.reserveTokens = 100
+    check not shouldCompact(500, s)     # 500 < 900
+    check shouldCompact(950, s)         # 950 > 900
+    s.enabled = false
+    check not shouldCompact(9999, s)    # 禁用不压缩
+
+  test "findCutPoint 保留最近 keepRecent":
+    var msgs: seq[Message] = @[]
+    for i in 0 ..< 20:
+      msgs.add Message(kind: mkUser, userContent: repeat("x", 100))  # 每条 ~25 tokens
+    let cut = findCutPoint(msgs, 100)   # keepRecent=100 → 保留约 4 条
+    let kept = msgs[cut .. ^1]
+    # 保留的应不超过 keepRecent 太多
+    check kept.len >= 1
+    check kept.len <= 6
+
+  test "prepareCompaction 超阈值触发压缩":
+    var settings = defaultCompactionSettings()
+    settings.contextWindow = 500
+    settings.reserveTokens = 50
+    settings.keepRecentTokens = 100
+    var msgs: seq[Message] = @[]
+    for i in 0 ..< 30:
+      msgs.add Message(kind: mkUser, userContent: repeat("y", 100))
+    let r = prepareCompaction(msgs, settings)
+    check r.compacted
+    check r.tokensBefore > 0
+    check r.cutIndex > 0
+    check r.summary.len > 0
+    check r.messagesToSummarize.len > 0
+
+  test "prepareCompaction 未超阈值不压缩":
+    let settings = defaultCompactionSettings()  # window 200k，少量消息
+    var msgs: seq[Message] = @[
+      Message(kind: mkUser, userContent: "hi"),
+      Message(kind: mkUser, userContent: "hello world"),
+    ]
+    let r = prepareCompaction(msgs, settings)
+    check not r.compacted
+    check r.cutIndex == -1
