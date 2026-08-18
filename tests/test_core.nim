@@ -558,3 +558,42 @@ suite "messages":
     check r.compacted
     check "<summary>" in r.summary
     check "</summary>" in r.summary
+
+suite "convert":
+  test "convertToLlm user 消息":
+    let msgs = @[Message(kind: mkUser, userContent: "hi")]
+    let r = convertToLlm(msgs)
+    check r.len == 1
+    check r[0].role == "user"
+    check r[0].content == "hi"
+
+  test "convertToLlm assistant 提取 toolCalls":
+    var content: seq[Content] = @[newTextContent("看下")]
+    content.add newToolContent("c1", "read", %*{"path": "a.nim"})
+    let msgs = @[Message(kind: mkAssistant, assistantContent: content, stopReason: srToolUse)]
+    let r = convertToLlm(msgs)
+    check r.len == 1
+    check r[0].role == "assistant"
+    check r[0].toolCalls.len == 1
+    check r[0].toolCalls[0]{"id"}.getStr == "c1"
+    check r[0].toolCalls[0]{"function"}{"name"}.getStr == "read"
+
+  test "convertToLlm tool 消息":
+    let msgs = @[Message(kind: mkToolResult, toolCallId: "c1", toolName: "read",
+                         toolText: "content", isError: false)]
+    let r = convertToLlm(msgs)
+    check r.len == 1
+    check r[0].role == "tool"
+    check r[0].toolCallId == "c1"
+    check r[0].toolName == "read"
+    check r[0].content == "content"
+
+  test "convertToLlm 多消息顺序保持":
+    let msgs = @[
+      Message(kind: mkUser, userContent: "q1"),
+      Message(kind: mkToolResult, toolCallId: "x", toolName: "bash", toolText: "out", isError: false),
+    ]
+    let r = convertToLlm(msgs)
+    check r.len == 2
+    check r[0].role == "user"
+    check r[1].role == "tool"
