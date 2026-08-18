@@ -21,6 +21,7 @@ import ../src/bashtimeout
 import ../src/pathutils
 import ../src/eventbus
 import ../src/usagetotals
+import ../src/cachestats
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -821,3 +822,37 @@ suite "usagetotals":
       UsageEntry(key: "high", usage: Usage(input: 10)),
     ])
     check bd.len == 2
+
+suite "cachestats":
+  test "CACHE_TTL_MS 常量":
+    check CacheTtlMs == 5 * 60 * 1000
+
+  test "detectMiss 首轮不计":
+    let m = detectMiss(PreviousRequest(), Usage(input: 1000), 100)
+    check not m.counted
+
+  test "缓存命中时不计":
+    let prev = PreviousRequest(promptTokens: 5000, timestamp: 100, reportedCache: true)
+    let m = detectMiss(prev, Usage(input: 100, cacheRead: 4900), 200)
+    check not m.counted   # missedTokens=0 < 噪声线
+
+  test "未命中时计入":
+    let prev = PreviousRequest(promptTokens: 5000, timestamp: 100, reportedCache: true)
+    let m = detectMiss(prev, Usage(input: 4000, cacheRead: 1000), 6100)
+    check m.counted
+    check m.missedTokens == 4000
+    check m.idleMs == 6000
+
+  test "噪声底线过滤":
+    let prev = PreviousRequest(promptTokens: 5000, timestamp: 0, reportedCache: true)
+    # miss 500 < 1024 噪声线
+    let m = detectMiss(prev, Usage(input: 4000, cacheRead: 4500), 100)
+    check not m.counted
+
+  test "addMiss 累计":
+    var waste = CacheWaste()
+    let prev = PreviousRequest(promptTokens: 5000, timestamp: 0, reportedCache: true)
+    waste.addMiss(detectMiss(prev, Usage(input: 4000, cacheRead: 1000), 100))
+    waste.addMiss(detectMiss(prev, Usage(input: 4000, cacheRead: 1000), 100))
+    check waste.missCount == 2
+    check waste.missedTokens == 8000
