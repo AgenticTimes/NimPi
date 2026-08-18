@@ -1,7 +1,7 @@
 ## 模型解析：对齐 pi `model-resolver.ts` 的 parseModelPattern / defaultModelPerProvider 语义。
 ## 解析 `model`、`provider/model`、`model:thinking-level`，支持按 provider 默认回退。
 
-import std/[strutils, tables]
+import std/[strutils]
 
 type
   ThinkingLevel* = enum
