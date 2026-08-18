@@ -1,6 +1,6 @@
 ## 单元测试：wire 序列化与 agent 工具分发。
 
-import std/[unittest, json, os, strutils, sequtils, algorithm]
+import std/[unittest, json, os, strutils, sequtils, algorithm, osproc]
 import ../src/types
 import ../src/agent
 import ../src/llm
@@ -18,6 +18,7 @@ import ../src/gitignore
 import ../src/messages
 import ../src/binary
 import ../src/bashtimeout
+import ../src/pathutils
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -642,3 +643,30 @@ suite "bashtimeout":
     let r = execBashWithTimeout("echo err >&2; echo out", BashTimeoutOptions(timeoutMs: 5000))
     check r.output.contains("err")
     check r.output.contains("out")
+
+suite "pathutils":
+  test "expandPath ~ 展开与 @ 前缀":
+    let home = getHomeDir()
+    check expandPath("~").startsWith("/Users/")
+    check expandPath("@/tmp/x") == "/tmp/x"
+
+  test "expandPath unicode 空格归一":
+    check expandPath("a\u202Fb") == "a b"
+
+  test "resolveToCwd 相对/绝对":
+    let cwd = "/tmp/proj"
+    check resolveToCwd("file.txt", cwd) == "/tmp/proj/file.txt"
+    check resolveToCwd("/abs/x", cwd) == "/abs/x"
+    check resolveToCwd("~/rel", cwd).startsWith("/Users/")
+
+  test "tryMacOSScreenshotPath AM/PM 窄空格":
+    let v = tryMacOSScreenshotPath("/tmp/Screenshot 1 AM.png")
+    check v.contains("\u202F")
+
+  test "resolveReadPath 弯引号变体":
+    # 用 shell 建含弯引号的文件名 fixture（避免 createDir 怪癖）
+    discard execCmdEx("mkdir -p /tmp/npi_pu_test && printf x > '/tmp/npi_pu_test/Capture d\u2019ecran.png'")
+    # 用户输入直引号
+    let r = resolveReadPath("/tmp/npi_pu_test/Capture d'ecran.png", "/tmp")
+    check fileExists(r)
+    discard execCmdEx("rm -f /tmp/npi_pu_test/'Capture d\u2019ecran.png'")
