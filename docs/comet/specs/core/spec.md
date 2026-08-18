@@ -1,25 +1,23 @@
-# NPI Truncate — Specification
+# NPI Shell — Specification
 
 ## 目标
-为 npi 实现工具输出的智能截断，对齐 pi `tools/truncate.ts`：行数与字节双限制，先到先截。
+为 npi 的工具输出做字符清理：移除会破坏显示或存储的控制字符与 ANSI 转义序列。对齐 pi `sanitizeBinaryOutput` 与 `stripAnsi`。
 
 ## 范围
-- `src/truncate.nim`：
-  - `TruncationOptions`（maxLines=2000, maxBytes=50KB）
-  - `truncateHead(content)`:保留开头 N 行/字节（文件读取），不返回半行
-  - `truncateTail(content)`:保留末尾 N 行/字节（bash 输出，保留错误信息）
-  - `formatSize(bytes)`: B/KB/MB 人类可读
-- 接入 agent.nim：read 用 truncateHead，bash 用 truncateTail（替换现在 50000 硬截断）
+- `src/shell.nim`：
+  - `stripAnsi(s)`：移除 ANSI/OSC/CSI 转义序列（ESC/C1 引入），对齐 pi ansiRegex
+  - `sanitizeBinaryOutput(s)`：过滤控制字符（保 tab/newline/CR）、unicode 格式字符（0xfff9-0xfffb）
+  - `sanitizeShellOutput(s)`：stripAnsi + sanitize + 去 \r（对齐 bash-executor onData 链）
+- 接入 agent.nim 的 bash 工具：输出经 sanitizeShellOutput 后再 truncateTail
 
 ## 非目标
-- 超大输出的临时文件 offload（fullOutputPath）—— 后续
-- ANSI/二进制清理 —— 后续（单独 shell 清理）
-- grep 行内截断 —— 后续
+- shell 解析/子进程管理 —— 已有 execCmdEx
+- 进程树杀死 —— 后续
 
 ## 验收
-- [ ] truncateHead 保留开头，超限标记
-- [ ] truncateTail 保留结尾，超限标记
-- [ ] 行数/字节限制先到先截
-- [ ] formatSize 格式正确
-- [ ] read/bash 工具接入
+- [ ] stripAnsi 移除 ANSI 颜色/控制序列
+- [ ] stripAnsi 保留普通文本
+- [ ] sanitizeBinaryOutput 过滤控制字符（保 tab/newline/CR）
+- [ ] 过滤 unicode 格式字符
+- [ ] bash 工具经 sanitizeShellOutput 清理
 - [ ] 单测覆盖
