@@ -1,22 +1,24 @@
-# NPI Messages — Specification
+# NPI Convert — Specification
 
 ## 目标
-为 npi 的 compaction 摘要对齐 pi 的标准格式：`<summary>` XML 包裹，替代当前无格式前缀拼接。
+为 npi 把消息转换逻辑集中对齐 pi convertToLlm：内部 Message → LLM ChatMessage。
 
 ## 范围
-- `src/messages.nim`：
-  - `COMPACTION_SUMMARY_PREFIX/SUFFIX` 常量（对齐 pi）
-  - `formatCompactionSummary(summary)`：`PREFIX + summary + SUFFIX`
-  - `createCompactionSummaryMessage(summary, tokensBefore)`：返回带摘要的消息（对齐 pi 结构）
-- 接入 compaction.nim：prepareCompaction 的 summary 用 formatCompactionSummary 包裹
+- `src/messages.nim` 新增：
+  - `convertToLlm(messages: seq[Message]): seq[ChatMessage]`：
+    - mkUser → user
+    - mkAssistant → assistant（含 toolCalls 提取，对齐 pi）
+    - mkToolResult → tool（toolCallId/toolName/content）
+    - 其它/compactionSummary → 跳过或 user（对齐 pi）
+- npi.nim 的 historyToChat 改为调用 convertToLlm（移除重复逻辑）
 
 ## 非目标
 - bashExecution/custom/branchSummary 消息类型 —— 后续
-- convertToLlm 全量 —— 后续
+- wire 格式 provider 差异 —— 已由 llm.nim 处理
 
 ## 验收
-- [ ] COMPACTION_SUMMARY_PREFIX/SUFFIX 常量与 pi 一致
-- [ ] formatCompactionSummary 用 <summary> 包裹
-- [ ] createCompactionSummaryMessage 含 summary+tokensBefore
-- [ ] compaction 摘要接入新格式
+- [ ] convertToLlm user 消息
+- [ ] assistant 含 toolCalls 提取
+- [ ] tool 消息（toolCallId/toolName）
+- [ ] npi.nim 复用 convertToLlm
 - [ ] 单测覆盖
