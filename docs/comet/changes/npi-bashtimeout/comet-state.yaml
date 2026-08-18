@@ -1,28 +1,92 @@
 schema: comet.native.v4
 name: npi-bashtimeout
 language: zh-CN
-phase: shape
+phase: build
 status: active
-state_version: 1
+state_version: 2
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-bashtimeout
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: building
   goal_cycle: 1
-  iteration: 0
+  iteration: 1
   attempt: 0
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
+  next_action: submit-builder-candidate
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 的 bash 工具实现超时控制（对齐 pi bash-executor 的 timeout/取消语义），命令挂死可终止。
+    result: pending
+    reason: null
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/bashtimeout.nim`："
+    result: pending
+    reason: null
+  - id: A3
+    source: specs/core/spec.md
+    text: "`BashTimeoutOptions`：timeoutMs（默认 120000，对齐 pi）、cwd"
+    result: pending
+    reason: null
+  - id: A4
+    source: specs/core/spec.md
+    text: "`execBashWithTimeout(cmd, opts)`：startProcess(/bin/sh -c) + poll 轮询，超时
+      terminate+kill 进程树，输出经临时文件收集"
+    result: pending
+    reason: null
+  - id: A5
+    source: specs/core/spec.md
+    text: 返回 (output, exitCode, timedOut)
+    result: pending
+    reason: null
+  - id: A6
+    source: specs/core/spec.md
+    text: 接入 agent.nim 的 bash 工具：替换 execCmdEx
+    result: pending
+    reason: null
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] 正常命令返回输出+退出码"
+    result: pending
+    reason: null
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] 超时命令被终止并标记 timedOut"
+    result: pending
+    reason: null
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 超时后子进程也被杀（进程树）"
+    result: pending
+    reason: null
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] 输出完整收集（含 stderr）"
+    result: pending
+    reason: null
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] agent bash 接入"
+    result: pending
+    reason: null
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: pending
+    reason: null
 builder_handoff: null
 blockers: []
 verification: null

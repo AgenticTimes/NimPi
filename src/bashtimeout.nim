@@ -1,7 +1,7 @@
 ## Bash 超时执行：对齐 pi bash-executor 的 timeout 语义。
 ## startProcess + poll + 超时终止进程树 + 临时文件输出收集。
 
-import std/[os, osproc, times, strutils, posix]
+import std/[os, osproc, times, posix]
 
 const
   DefaultBashTimeoutMs* = 120000   ## 对齐 pi DEFAULT（2 分钟）

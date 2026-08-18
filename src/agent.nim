@@ -1,7 +1,7 @@
 ## Agent 循环：对齐 pi agent-loop 的简化版。
 ## 多轮：user → LLM → tool calls → 执行 → 回填 toolResult → 再请求，直到 stop。
 
-import std/[json, strutils, os, osproc]
+import std/[json, strutils, os]
 import ./types
 import ./compaction
 import ./truncate
