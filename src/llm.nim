@@ -28,6 +28,7 @@ type
     role*: string
     content*: string
     toolCallId*: string
+    toolName*: string
     toolCalls*: seq[JsonNode]   ## 已有 assistant tool_calls（来自历史）
 
   ClientOptions* = object
@@ -48,6 +49,8 @@ proc newLlmClient*(opts: ClientOptions): LlmClient =
   if result.opts.baseUrl.len == 0:
     result.opts.baseUrl = if result.opts.provider == "anthropic":
         "https://api.anthropic.com"
+      elif result.opts.provider == "gemini":
+        "https://generativelanguage.googleapis.com"
       else:
         "https://api.openai.com/v1"
   if result.opts.anthropicVersion.len == 0:
@@ -97,6 +100,133 @@ proc parseSseLine(line: string): tuple[event: string, data: string] =
 
 # ---------------------------------------------------------------------------
 # Anthropic Messages API：body 构造 + SSE 解析
+# ---------------------------------------------------------------------------
+# Gemini API：body 构造 + SSE 解析
+# ---------------------------------------------------------------------------
+
+proc chatToGemini(m: ChatMessage): JsonNode =
+  ## 把内部 ChatMessage 转成 Gemini contents 数组项。
+  result = newJObject()
+  case m.role
+  of "user":
+    result["role"] = %"user"
+    result["content"] = %*{"parts": [{"text": m.content}]}
+  of "assistant":
+    result["role"] = %"model"
+    var parts = newJArray()
+    if m.content.len > 0:
+      parts.add %*{"text": m.content}
+    for tc in m.toolCalls:
+      let name = tc{"function"}{"name"}.getStr("")
+      var args: JsonNode = newJObject()
+      try: args = parseJson(tc{"function"}{"arguments"}.getStr("{}"))
+      except CatchableError: args = newJObject()
+      parts.add %*{"functionCall": {"name": name, "args": args}}
+    result["content"] = %*{"parts": parts}
+  of "tool":
+    result["role"] = %"user"
+    result["content"] = %*{"parts": [{
+      "functionResponse": {
+        "name": m.toolName,
+        "response": %*{"output": m.content}
+      }
+    }]}
+  else:
+    result["role"] = %m.role
+    result["content"] = %*{"parts": [{"text": m.content}]}
+
+proc buildGeminiBody*(messages: seq[ChatMessage], tools: seq[JsonNode], model: string): JsonNode =
+  result = newJObject()
+  var arr = newJArray()
+  for m in messages:
+    arr.add m.chatToGemini()
+  result["contents"] = arr
+  if tools.len > 0:
+    var decls = newJArray()
+    for t in tools:
+      let f = t{"function"}
+      if not f.isNil:
+        decls.add %*{
+          "name": f{"name"}.getStr(""),
+          "description": f{"description"}.getStr(""),
+          "parameters": f{"parameters"}
+        }
+    result["tools"] = newJArray()
+    result["tools"].add %*{"functionDeclarations": decls}
+
+proc streamGemini(client: LlmClient, messages: seq[ChatMessage],
+                  tools: seq[JsonNode],
+                  onEvent: proc(e: StreamPayload): void {.closure.}) {.async.} =
+  ## Gemini streamGenerateContent 流式解析。
+  let body = buildGeminiBody(messages, tools, client.opts.model)
+  let http = newAsyncHttpClient(
+    headers = newHttpHeaders([
+      ("x-goog-api-key", client.opts.apiKey),
+      ("Content-Type", "application/json"),
+      ("Accept", "text/event-stream")
+    ]))
+  var full = ""
+  var finalStop = srStop
+  var usage = Usage()
+  # Gemini functionCall 累积
+  var fcName = ""
+  var fcArgs = newJObject()
+  var inFunc = false
+  try:
+    let url = client.opts.baseUrl & "/v1beta/models/" & client.opts.model &
+              ":streamGenerateContent?alt=sse"
+    let resp = await http.post(url, body = $body)
+    if not resp.status.startsWith("200"):
+      raise newException(LlmError, "HTTP " & resp.status)
+    let strm = resp.bodyStream
+    while true:
+      let (hasData, chunk) = await read(strm)
+      if not hasData or chunk.len == 0: break
+      full.add chunk
+      while true:
+        let nl = full.find('\n')
+        if nl < 0: break
+        let cur = full[0 ..< nl]
+        full = full[nl+1 .. ^1]
+        let (ev, data) = parseSseLine(cur)
+        if ev == "" and data.len == 0: continue
+        if data == "[DONE]": break
+        var j: JsonNode
+        try: j = parseJson(data)
+        except CatchableError: continue
+        let cands = j{"candidates"}
+        if cands.isNil or cands.len == 0: continue
+        let cand = cands[0]
+        # finish reason
+        let fr = cand{"finishReason"}.getStr("")
+        case fr
+        of "STOP": finalStop = srStop
+        of "MAX_TOKENS": finalStop = srLength
+        else: discard
+        let parts = cand{"content"}{"parts"}
+        if parts.isNil: continue
+        for p in parts:
+          let tx = p{"text"}
+          if not tx.isNil and tx.kind == JString and tx.str.len > 0:
+            onEvent(StreamPayload(kind: seTextDelta, textDelta: tx.str))
+          let fc = p{"functionCall"}
+          if not fc.isNil:
+            fcName = fc{"name"}.getStr("")
+            fcArgs = fc{"args"}
+            inFunc = true
+            finalStop = srToolUse
+        let um = j{"usageMetadata"}
+        if not um.isNil:
+          usage.input = um{"promptTokenCount"}.getInt(0)
+          usage.output = um{"candidatesTokenCount"}.getInt(0)
+          usage.totalTokens = usage.input + usage.output
+    if inFunc:
+      onEvent(StreamPayload(kind: seToolCallStart, toolId: "gemini-fc",
+                            toolName: fcName, toolArgs: fcArgs))
+    onEvent(StreamPayload(kind: seEnd, stopReason: finalStop, usage: usage))
+  finally:
+    http.close()
+
 # ---------------------------------------------------------------------------
 
 proc chatToAnthropic(m: ChatMessage): JsonNode =
@@ -247,6 +377,9 @@ proc stream*(client: LlmClient, messages: seq[ChatMessage],
   ## 发起流式请求，按 provider 分派到对应解析。
   if client.opts.provider == "anthropic":
     await client.streamAnthropic(messages, tools, onEvent)
+    return
+  if client.opts.provider == "gemini":
+    await client.streamGemini(messages, tools, onEvent)
     return
   # ---- OpenAI 兼容（Chat Completions）----
   let model = client.opts.model

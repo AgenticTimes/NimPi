@@ -28,10 +28,14 @@ type
 
 proc parseArgs(argv: seq[string]): CliArgs =
   result.provider = getEnv("NPI_PROVIDER", "openai")
-  result.model = getEnv("NPI_MODEL", if result.provider == "anthropic": "claude-sonnet-4-5" else: "gpt-4o-mini")
+  result.model = getEnv("NPI_MODEL", if result.provider == "anthropic": "claude-sonnet-4-5"
+                                    elif result.provider == "gemini": "gemini-2.0-flash"
+                                    else: "gpt-4o-mini")
   result.baseUrl = getEnv("NPI_BASE_URL", "")
   result.apiKey = if result.provider == "anthropic":
       getEnv("ANTHROPIC_API_KEY", getEnv("NPI_API_KEY", ""))
+    elif result.provider == "gemini":
+      getEnv("GEMINI_API_KEY", getEnv("NPI_API_KEY", ""))
     else:
       getEnv("OPENAI_API_KEY", getEnv("NPI_API_KEY", ""))
   result.sessionDir = getEnv("NPI_SESSION_DIR", os.getCurrentDir() / ".npi/sessions")
@@ -62,15 +66,16 @@ proc parseArgs(argv: seq[string]): CliArgs =
   npi "指令"                带参数：print 完成后进入交互
   npi                       TUI 全屏交互；stdin 非 TTY 退化为 REPL
   npi --provider anthropic  使用 Anthropic (Claude)
+  npi --provider gemini     使用 Google Gemini
   npi --list-models         列出可用模型（简表）
 
 选项:
   -p                 print 模式，不进入交互
   -r                 恢复最近会话
-  --provider <p>     openai|anthropic (默认 openai 或 $NPI_PROVIDER)
+  --provider <p>     openai|anthropic|gemini (默认 openai 或 $NPI_PROVIDER)
   --model <id>       模型 (默认 gpt-4o-mini 或 $NPI_MODEL)
   --base-url <url>   OpenAI/Anthropic 兼容 base url (默认 $NPI_BASE_URL)
-  --api-key <key>    API key (默认 $OPENAI_API_KEY / $ANTHROPIC_API_KEY)
+  --api-key <key>    API key (默认 $OPENAI_API_KEY / $ANTHROPIC_API_KEY / $GEMINI_API_KEY)
   --no-session       不落盘会话
   -h, --help         帮助
 """)
@@ -118,7 +123,7 @@ proc historyToChat(history: seq[Message]): seq[ChatMessage] =
         content: if m.assistantContent.len == 0: "" else: m.assistantContent[0].text,
         toolCalls: tcs)
     of mkToolResult:
-      result.add ChatMessage(role: "tool", toolCallId: m.toolCallId, content: m.toolText)
+      result.add ChatMessage(role: "tool", toolCallId: m.toolCallId, toolName: m.toolName, content: m.toolText)
 
 proc runConversation*(driver: AgentDriver, session: var Session,
                       userInput: string,
@@ -186,7 +191,7 @@ proc runConversation*(driver: AgentDriver, session: var Session,
                          toolName: c.name, toolText: r.text, isError: r.isError)
         session.append(tr)
         history.add tr
-        msgs.add ChatMessage(role: "tool", toolCallId: c.id, content: r.text)
+        msgs.add ChatMessage(role: "tool", toolCallId: c.id, toolName: c.name, content: r.text)
 
   return history
 
