@@ -1,9 +1,9 @@
 schema: comet.native.v4
 name: npi-core
 language: zh-CN
-phase: verify
-status: active
-state_version: 17
+phase: archive
+status: done
+state_version: 29
 brief: brief.md
 spec_changes:
   - capability: core
@@ -15,72 +15,94 @@ workspace:
   target_branch: master
   finish: null
 loop:
-  stage: verify-ready
+  stage: done
   goal_cycle: 1
   iteration: 1
-  attempt: 7
+  attempt: 12
   retry_epoch: 1
   failed_iteration_count: 0
   no_progress_count: 0
-  execution_failure_count: 1
+  execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: await-verifier-result
+  next_action: null
 acceptance:
   - id: A1
     source: specs/core/spec.md
     text: 在 `npi/` 用 Nim 实现极简编码 agent，对齐 `mpi`（MoonBit）主链路，带 TUI。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Nim 编码 agent 已实现：CLI+流式LLM+agent循环+工具+TUI
+      truncated: false
   - id: A2
     source: specs/core/spec.md
     text: CLI：`-p`(print) / 默认 TUI / stdin 非 TTY 退化为 REPL；`-r` 恢复会话
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: -p print/默认TUI/REPL/-r 恢复会话均实现
+      truncated: false
   - id: A3
     source: specs/core/spec.md
     text: LLM：OpenAI 兼容流式（SSE 解析），多轮工具调用
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: OpenAI 兼容 SSE 流式 + 多轮工具调用
+      truncated: false
   - id: A4
     source: specs/core/spec.md
     text: 工具：read / write / edit / bash / ls / grep / find
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: read/write/edit/bash/ls/grep/find 7 工具单测全过
+      truncated: false
   - id: A5
     source: specs/core/spec.md
     text: 会话：JSONL 落盘（`.npi/sessions/`）
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: JSONL 会话落盘（集成实测 4 条含 toolResult）
+      truncated: false
   - id: A6
     source: specs/core/spec.md
     text: TUI：illwill 全屏，消息区 + 输入 + 滚动
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: illwill 全屏 TUI 消息区/输入/滚动
+      truncated: false
   - id: A7
     source: specs/core/spec.md
     text: '[ ] `npi -p "cmd"` 流式输出后退出'
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: npi -p 流式输出后退出，实测通过
+      truncated: false
   - id: A8
     source: specs/core/spec.md
     text: "[ ] mock SSE 下 agent 循环可完成 文本→工具→结果→最终文本"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: mock SSE agent 循环 文本→工具→结果→最终
+      truncated: false
   - id: A9
     source: specs/core/spec.md
     text: "[ ] 会话 JSONL 落盘完整（含工具调用与结果）"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: 会话落盘含工具调用与结果
+      truncated: false
   - id: A10
     source: specs/core/spec.md
     text: "[ ] 7 个核心单测全绿"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: 单测全绿（brew nim 9 项）
+      truncated: false
   - id: A11
     source: specs/core/spec.md
     text: "[ ] TUI 启动/退出不崩溃，输入可发送"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: TUI 启动/退出无崩溃
+      truncated: false
 builder_handoff:
   candidate_id: 11d59422-65d1-4686-bd83-5c268320430d
   identity_provider: skill-coordinated
@@ -131,7 +153,48 @@ builder_handoff:
   known_limits_truncated: false
   submitted_at: 2026-08-17T23:28:50.391Z
 blockers: []
-verification: null
+verification:
+  candidate_id: 11d59422-65d1-4686-bd83-5c268320430d
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:84349e80-c703-4c1d-843a-7631907eecd9
+  iteration: 1
+  attempt: 12
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-ut-brew
+      name:
+        text: NPI 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_brew_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 2202
+  summary:
+    text: NPI Core 验收全过：brew nim 编译零错、9 单测 green（comet check 实跑）、mock SSE
+      端到端、会话落盘完整、TUI 可用。
+    truncated: false
+  risks:
+    - text: 仅 OpenAI+Anthropic provider；Gemini 等待后续 change
+      truncated: false
+    - text: TUI 无命令面板/diff 渲染/选择器（known_limit）
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T00:04:32.122Z
 history:
   - goal_cycle: 1
     iteration: 1
@@ -173,6 +236,16 @@ history:
         before every required check succeeds"
       truncated: false
     completed_at: 2026-08-17T23:35:20.362Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 12
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Core 验收全过：brew nim 编译零错、9 单测 green（comet check 实跑）、mock SSE
+        端到端、会话落盘完整、TUI 可用。
+      truncated: false
+    completed_at: 2026-08-18T00:04:32.122Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -183,7 +256,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
-archived: false
+verification_result: pass
+verification_report: verification.md
+archived: true
 created_at: 2026-08-17T23:27:16.987Z
