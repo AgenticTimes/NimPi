@@ -1,7 +1,7 @@
 ## Agent 循环：对齐 pi agent-loop 的简化版。
 ## 多轮：user → LLM → tool calls → 执行 → 回填 toolResult → 再请求，直到 stop。
 
-import std/[json, strutils, os, osproc]
+import std/[json, strutils, os]
 import ./types
 import ./compaction
 import ./truncate
@@ -9,6 +9,7 @@ import ./shell
 import ./grep
 import ./find
 import ./lsdir
+import ./bashtimeout
 
 type
   ToolResultRaw* = tuple
@@ -90,13 +91,16 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
     let cmd = args{"command"}.getStr(args{"cmd"}.getStr(""))
     if cmd.len == 0: return ("", name, "error: missing command", true)
     try:
-      let (outp, code) = execCmdEx(cmd, options = {poUsePath, poStdErrToStdOut})
-      let cleaned = outp.sanitizeShellOutput()
+      var bopts = defaultBashTimeoutOptions()
+      let tm = args{"timeoutMs"}.getInt(0)
+      if tm > 0: bopts.timeoutMs = tm
+      let br = execBashWithTimeout(cmd, bopts)
+      let cleaned = br.output.sanitizeShellOutput()
       let t = truncateTail(cleaned, defaultTruncationOptions())
       let text = if t.truncated: t.content & "\n... [truncated " & formatSize(t.totalBytes) &
                     ", showing last " & $t.outputLines & " lines]"
                  else: t.content
-      return ("", name, text, code != 0)
+      return ("", name, text, br.exitCode != 0 or br.timedOut)
     except CatchableError as e:
       return ("", name, "error: " & e.msg, true)
   of "ls":

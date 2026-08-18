@@ -1,0 +1,218 @@
+schema: comet.native.v4
+name: npi-bashtimeout
+language: zh-CN
+phase: archive
+status: done
+state_version: 8
+brief: brief.md
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/npi-bashtimeout
+  target_branch: master
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 的 bash 工具实现超时控制（对齐 pi bash-executor 的 timeout/取消语义），命令挂死可终止。
+    result: passed
+    reason:
+      text: bash 超时执行对齐 pi bash-executor timeout
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/bashtimeout.nim`："
+    result: passed
+    reason:
+      text: src/bashtimeout.nim：BashTimeoutOptions/Result/execBashWithTimeout/killProcessTree
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`BashTimeoutOptions`：timeoutMs（默认 120000，对齐 pi）、cwd"
+    result: passed
+    reason:
+      text: 正常命令返回输出+退出码
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`execBashWithTimeout(cmd, opts)`：startProcess(/bin/sh -c) + poll 轮询，超时
+      terminate+kill 进程树，输出经临时文件收集"
+    result: passed
+    reason:
+      text: 超时命令被终止并标记
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: 返回 (output, exitCode, timedOut)
+    result: passed
+    reason:
+      text: 超时后进程树被杀（posix kill -pid）
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 接入 agent.nim 的 bash 工具：替换 execCmdEx
+    result: passed
+    reason:
+      text: 输出完整收集含 stderr（子shell 重定向）
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] 正常命令返回输出+退出码"
+    result: passed
+    reason:
+      text: agent bash 工具接入
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] 超时命令被终止并标记 timedOut"
+    result: passed
+    reason:
+      text: 正常命令（单测）
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 超时后子进程也被杀（进程树）"
+    result: passed
+    reason:
+      text: 超时终止（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] 输出完整收集（含 stderr）"
+    result: passed
+    reason:
+      text: stderr 收集（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] agent bash 接入"
+    result: passed
+    reason:
+      text: timeoutMs 可配
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 86 项）
+      truncated: false
+builder_handoff:
+  candidate_id: f57eb689-ee07-4dfe-9ad7-9bbe63a0030e
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:5825b12d-7212-47e3-bc71-74c4acb4015a
+  iteration: 1
+  summary:
+    text: 实现 bash 超时执行对齐 pi bash-executor timeout：execBashWithTimeout（startProcess
+      /bin/sh -c + poll 轮询 + 超时 killProcessTree posix kill(-pid) + 临时文件收集 stderr
+      (cmd)>file 2>&1 子shell包裹）、BashTimeoutOptions(timeoutMs 默认120000)；agent
+      bash 工具接入替换 execCmdEx。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 86 单测全绿（含 3 个 bashtimeout 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 流式输出回调待后续
+      truncated: false
+    - text: SIGINT 信号取消待后续
+      truncated: false
+    - text: Windows 兼容待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-18T16:19:06.049Z
+blockers: []
+verification:
+  candidate_id: f57eb689-ee07-4dfe-9ad7-9bbe63a0030e
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:55e0e648-d392-4194-81f2-bbd57389df99
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-bt-ut
+      name:
+        text: NPI BashTimeout 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_bt_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 5829
+  summary:
+    text: NPI BashTimeout 验收全过：comet Runtime 用 brew nim 实跑单测 86 OK，bash 工具带超时与进程树终止。
+    truncated: false
+  risks:
+    - text: 流式输出回调待后续
+      truncated: false
+    - text: SIGINT 信号取消待后续
+      truncated: false
+    - text: Windows 兼容待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-18T16:19:21.021Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI BashTimeout 验收全过：comet Runtime 用 brew nim 实跑单测 86 OK，bash 工具带超时与进程树终止。
+      truncated: false
+    completed_at: 2026-08-18T16:19:21.021Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-18T16:15:32.657Z
