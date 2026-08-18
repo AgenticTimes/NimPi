@@ -36,6 +36,7 @@ npi --no-session                               # 不落盘
 |----------|----------|---------|----------|
 | `openai`（默认） | `gpt-4o-mini` | `OPENAI_API_KEY` | OpenAI Chat Completions |
 | `anthropic` | `claude-sonnet-4-5` | `ANTHROPIC_API_KEY` | Anthropic Messages API (`/v1/messages`) |
+| `gemini` | `gemini-2.0-flash` | `GEMINI_API_KEY` | Gemini `streamGenerateContent` |
 
 ```bash
 NPI_PROVIDER=anthropic npi -p "修复这个 bug"
