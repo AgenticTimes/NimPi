@@ -670,3 +670,31 @@ suite "pathutils":
     let r = resolveReadPath("/tmp/npi_pu_test/Capture d'ecran.png", "/tmp")
     check fileExists(r)
     discard execCmdEx("rm -f /tmp/npi_pu_test/'Capture d\u2019ecran.png'")
+
+suite "glob":
+  test "brace 展开 {a,b}":
+    check matchGlob("*.{txt,log}", "a.txt")
+    check matchGlob("*.{txt,log}", "a.log")
+    check not matchGlob("*.{txt,log}", "a.md")
+
+  test "字符类 [abc]":
+    check matchGlob("file[12].txt", "file1.txt")
+    check not matchGlob("file[12].txt", "file3.txt")
+
+  test "区间 [a-z]":
+    check matchGlob("file[a-c].txt", "fileb.txt")
+    check not matchGlob("file[a-c].txt", "filez.txt")
+
+  test "取反 [!abc]":
+    check matchGlob("file[!12].txt", "file3.txt")
+    check not matchGlob("file[!12].txt", "file1.txt")
+
+  test "与 * 组合":
+    check matchGlob("src/*.{nim,ts}", "src/main.nim")
+    check matchGlob("src/*.{nim,ts}", "src/app.ts")
+    check not matchGlob("src/*.{nim,ts}", "src/app.md")
+
+  test "findPath 用 brace 模式":
+    let r = findPath("tests/fixtures/finddir", FindOptions(pattern: "*.{txt,log}"))
+    check "a.txt" in r
+    check "b.log" in r
