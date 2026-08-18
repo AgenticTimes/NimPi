@@ -1,21 +1,23 @@
-# NPI Gemini — Specification
+# NPI Skills — Specification
 
 ## 目标
-为 npi 增加 Google Gemini provider，支持流式推理与函数调用，验证 provider 抽象的三家横向扩展。
+为 npi 实现 pi 的 Agent Skills 支持：从 skills 目录递归发现 SKILL.md，解析 frontmatter（name/description/disable-model-invocation），按 Agent Skills 标准 XML 格式注入 system prompt。
 
 ## 范围
-- `LlmClient` provider 增加 `gemini` 分支
-- Gemini API `generateContent` 流式（SSE/`streamGenerateContent`），支持 content/functionCall
-- CLI `--provider gemini` / `NPI_PROVIDER=gemini` 切换，默认 openai
-- 复用 agent 循环/工具/会话，不改接口
+- `src/skills.nim`：递归发现 SKILL.md（目录含 SKILL.md 即视为 skill root 不再深入）、YAML frontmatter 解析（name/description/disable-model-invocation）、name 校验
+- 加载源：项目级 `.npi/skills/` 与用户级（`NPI_AGENT_DIR`/默认 `~/.npi/skills`）
+- XML 格式注入 system prompt（对齐 agentskills.io 标准）；`disable-model-invocation=true` 的 skill 不注入
+- 校验失败仅警告不阻断
 
 ## 非目标
-- Mistral 等更多 provider —— 后续 change
-- 会话压缩 / extensions / RPC —— 后续 change
+- `/skill:name` 显式命令调用 —— 后续 change
+- 平台目录枚举（.claude/.cursor 等各家）—— 后续 change
+- 技能市场/安装器 —— 后续 change
 
 ## 验收
-- [ ] `--provider gemini` 可切换，默认仍 openai
-- [ ] Gemini 流式文本解析（text 增量）
-- [ ] Gemini `functionCall` 工具调用可执行并回填 `functionResponse`
-- [ ] mock Gemini SSE 端到端 agent 循环 2 轮
-- [ ] 现有单测仍全绿（10 项及以上）
+- [ ] 递归找到 SKILL.md（含嵌套子目录），目录含 SKILL.md 不再深入子目录
+- [ ] YAML frontmatter name/description 正确解析（name 缺省用目录名）
+- [ ] XML 格式注入 system prompt 正确（对齐 agentskills.io）
+- [ ] disable-model-invocation=true 的 skill 从 prompt 排除
+- [ ] 缺失/损坏 frontmatter 仅警告不报错
+- [ ] 单测覆盖以上逻辑
