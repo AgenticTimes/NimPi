@@ -1,0 +1,298 @@
+schema: comet.native.v4
+name: npi-system-prompt
+language: zh-CN
+phase: build
+status: active
+state_version: 2
+brief: brief.md
+spec_changes:
+  - capability: system-prompt
+    operation: create
+    source: specs/system-prompt/spec.md
+workspace:
+  isolation: branch
+  change_branch: comet/npi-system-prompt
+  target_branch: master
+  finish: null
+loop:
+  stage: building
+  goal_cycle: 1
+  iteration: 1
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: submit-builder-candidate
+acceptance:
+  - id: A1
+    source: brief.md
+    text: 无 customPrompt + 默认工具 → 输出含 "Available tools:"、全部工具行、guidelines 含 "Be
+      concise in your responses"
+    result: pending
+    reason: null
+  - id: A2
+    source: brief.md
+    text: customPrompt 提供 → 输出以 customPrompt 开头，含 appendSection、context、cwd
+    result: pending
+    reason: null
+  - id: A3
+    source: brief.md
+    text: selectedTools 只含 bash → guidelines 含 "Use bash for file operations like
+      ls, rg, find"（仅当无 grep/find/ls）
+    result: pending
+    reason: null
+  - id: A4
+    source: brief.md
+    text: promptGuidelines 重复项 → 去重只出现一次
+    result: pending
+    reason: null
+  - id: A5
+    source: brief.md
+    text: contextFiles 非空 → 输出含 `<project_context>` 与 `<project_instructions
+      path="...">`
+    result: pending
+    reason: null
+  - id: A6
+    source: brief.md
+    text: skills 非空且有 read 工具 → 输出含 skills XML
+    result: pending
+    reason: null
+  - id: A7
+    source: brief.md
+    text: appendSystemPrompt 非空 → 附加在默认提示之后
+    result: pending
+    reason: null
+  - id: A8
+    source: brief.md
+    text: cwd 含反斜杠 → 替换为 "/"（Windows 路径归一）
+    result: pending
+    reason: null
+  - id: A9
+    source: specs/system-prompt/spec.md
+    text: 对齐 pi-coding-agent 的 `core/system-prompt.ts` 的 `buildSystemPrompt`。归档后
+      `src/systemprompt.nim` 的完整行为如下。
+    result: pending
+    reason: null
+  - id: A10
+    source: specs/system-prompt/spec.md
+    text: 输入：BuildSystemPromptOptions。返回组装后的完整系统提示字符串。cwd 先做路径归一：`/` 反斜杠替换为
+      `/`（Windows 语义，对齐 pi `promptCwd`）。
+    result: pending
+    reason: null
+  - id: A11
+    source: specs/system-prompt/spec.md
+    text: prompt = customPrompt
+    result: pending
+    reason: null
+  - id: A12
+    source: specs/system-prompt/spec.md
+    text: 'appendSection = appendSystemPrompt 非空 ? `\n\n` & appendSystemPrompt :
+      ""，若非空则 prompt += appendSection'
+    result: pending
+    reason: null
+  - id: A13
+    source: specs/system-prompt/spec.md
+    text: contextFiles 非空 → prompt += `\n\n<project_context>\n\nProject-specific
+      instructions and guidelines:\n\n` + 每个文件 `<project_instructions
+      path="{path}">\n{content}\n</project_instructions>\n\n` +
+      `</project_context>\n`
+    result: pending
+    reason: null
+  - id: A14
+    source: specs/system-prompt/spec.md
+    text: hasRead = selectedTools 为空 或 含 "read"；hasRead 且 skills 非空 → prompt +=
+      formatSkillsForPrompt(skills)
+    result: pending
+    reason: null
+  - id: A15
+    source: specs/system-prompt/spec.md
+    text: "prompt += 工作目录尾注（与 customPrompt 分支相同格式：`\\nCurrent working directory:
+      {promptCwd}`）；结束"
+    result: pending
+    reason: null
+  - id: A16
+    source: specs/system-prompt/spec.md
+    text: 'tools = selectedTools 非空 ? selectedTools : ["read", "bash", "edit",
+      "write"]'
+    result: pending
+    reason: null
+  - id: A17
+    source: specs/system-prompt/spec.md
+    text: 'visibleTools = tools 中在 toolSnippets 有描述者；toolsList = visibleTools 非空 ?
+      每项 `- {name}: {snippet}` 换行拼接 : "(none)"'
+    result: pending
+    reason: null
+  - id: A18
+    source: specs/system-prompt/spec.md
+    text: guidelines 组装（去重，Set 语义，保持注入顺序）：
+    result: pending
+    reason: null
+  - id: A19
+    source: specs/system-prompt/spec.md
+    text: hasBash 且 无 grep 且 无 find 且 无 ls → "Use bash for file operations like ls,
+      rg, find"
+    result: pending
+    reason: null
+  - id: A20
+    source: specs/system-prompt/spec.md
+    text: promptGuidelines 逐项 trim，非空则注入
+    result: pending
+    reason: null
+  - id: A21
+    source: specs/system-prompt/spec.md
+    text: 固定项：先 "Be concise in your responses"，再 "Show file paths clearly when
+      working with files"
+    result: pending
+    reason: null
+  - id: A22
+    source: specs/system-prompt/spec.md
+    text: 每项去重（已存在则跳过）；guidelines = 每项 `- {g}` 换行拼接
+    result: pending
+    reason: null
+  - id: A23
+    source: specs/system-prompt/spec.md
+    text: prompt = 默认正文（含 `Available tools:\n{toolsList}` 占位替换 + Guidelines 段 + npi
+      文档说明段）
+    result: pending
+    reason: null
+  - id: A24
+    source: specs/system-prompt/spec.md
+    text: appendSection 非空 → prompt += appendSection
+    result: pending
+    reason: null
+  - id: A25
+    source: specs/system-prompt/spec.md
+    text: contextFiles 非空 → 注入 `<project_context>` 段（同 customPrompt 分支格式）
+    result: pending
+    reason: null
+  - id: A26
+    source: specs/system-prompt/spec.md
+    text: hasRead（tools 含 "read"）且 skills 非空 → prompt +=
+      formatSkillsForPrompt(skills)
+    result: pending
+    reason: null
+  - id: A27
+    source: specs/system-prompt/spec.md
+    text: "prompt += 工作目录尾注（格式：`\\nCurrent working directory: {promptCwd}`）；结束"
+    result: pending
+    reason: null
+  - id: A28
+    source: specs/system-prompt/spec.md
+    text: visibleTools 为空 → toolsList = "(none)"（对齐 pi）。
+    result: pending
+    reason: null
+  - id: A29
+    source: specs/system-prompt/spec.md
+    text: "`proc systemPrompt(cwd: string, trustProject = true)` 改为委托
+      buildSystemPrompt："
+    result: pending
+    reason: null
+  - id: A30
+    source: specs/system-prompt/spec.md
+    text: 替换原硬编码字符串构造。既有 skills 注入逻辑（formatSkillsForPrompt）由 buildSystemPrompt
+      内部承担，行为不变。
+    result: pending
+    reason: null
+  - id: A31
+    source: specs/system-prompt/spec.md
+    text: 默认分支：输出含 "Available tools:"、read 工具行、guidelines "Be concise in your
+      responses"、"Current working directory:"
+    result: pending
+    reason: null
+  - id: A32
+    source: specs/system-prompt/spec.md
+    text: 无工具可见（snippets 空）→ toolsList "(none)"
+    result: pending
+    reason: null
+  - id: A33
+    source: specs/system-prompt/spec.md
+    text: 工具组合：仅 bash（无 grep/find/ls）→ 含 "Use bash for file operations like ls, rg,
+      find"
+    result: pending
+    reason: null
+  - id: A34
+    source: specs/system-prompt/spec.md
+    text: 有 grep → 不含该 bash 引导句
+    result: pending
+    reason: null
+  - id: A35
+    source: specs/system-prompt/spec.md
+    text: promptGuidelines 重复项 → 只出现一次
+    result: pending
+    reason: null
+  - id: A36
+    source: specs/system-prompt/spec.md
+    text: promptGuidelines 空白项 → 跳过
+    result: pending
+    reason: null
+  - id: A37
+    source: specs/system-prompt/spec.md
+    text: customPrompt 分支：以 customPrompt 开头，含 append、context、skills（hasRead 时）、cwd
+    result: pending
+    reason: null
+  - id: A38
+    source: specs/system-prompt/spec.md
+    text: customPrompt 无 read 工具 → 不含 skills XML
+    result: pending
+    reason: null
+  - id: A39
+    source: specs/system-prompt/spec.md
+    text: contextFiles → 含 `<project_context>` 与 `<project_instructions path="...">`
+      及内容
+    result: pending
+    reason: null
+  - id: A40
+    source: specs/system-prompt/spec.md
+    text: appendSystemPrompt → 出现在默认提示之后
+    result: pending
+    reason: null
+  - id: A41
+    source: specs/system-prompt/spec.md
+    text: cwd 反斜杠 → 归一为 "/"
+    result: pending
+    reason: null
+  - id: A42
+    source: specs/system-prompt/spec.md
+    text: 无 customPrompt 无 context 无 skills → 结构完整（头部/工具/guidelines/cwd）
+    result: pending
+    reason: null
+  - id: A43
+    source: specs/system-prompt/spec.md
+    text: pi 文档路径解析（getDocsPath 等）
+    result: pending
+    reason: null
+  - id: A44
+    source: specs/system-prompt/spec.md
+    text: pi 完整默认提示文案
+    result: pending
+    reason: null
+  - id: A45
+    source: specs/system-prompt/spec.md
+    text: toolSnippets 外部注入机制
+    result: pending
+    reason: null
+  - id: A46
+    source: specs/system-prompt/spec.md
+    text: skills XML 格式改动
+    result: pending
+    reason: null
+builder_handoff: null
+blockers: []
+verification: null
+history: []
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pending
+verification_report: null
+archived: false
+created_at: 2026-08-19T02:35:05.250Z
