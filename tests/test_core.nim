@@ -1103,3 +1103,28 @@ suite "finalintegrate":
     let r = printTimings()
     check "agent-init" in r
     delEnv("NPI_TIMING")
+
+suite "configintegrate":
+  test "resolveConfigValue 支持 $ENV 模板（集成）":
+    putEnv("NPI_INTEGRATE_TEST_KEY", "secret-xyz")
+    var envTable = initTable[string, string]()
+    for k, v in envPairs():
+      envTable[k] = v
+    check resolveConfigValue("$NPI_INTEGRATE_TEST_KEY", envTable) == "secret-xyz"
+    delEnv("NPI_INTEGRATE_TEST_KEY")
+
+  test "resolveConfigValue 支持 $!cmd 模板":
+    var envTable = initTable[string, string]()
+    check resolveConfigValue("$!echo cmd-key", envTable) == "cmd-key"
+
+  test "字面量不变":
+    var envTable = initTable[string, string]()
+    check resolveConfigValue("literal-key", envTable) == "literal-key"
+
+  test "混合模板":
+    putEnv("NPI_MIX_TOKEN", "tok")
+    var envTable = initTable[string, string]()
+    for k, v in envPairs():
+      envTable[k] = v
+    check resolveConfigValue("pre-$NPI_MIX_TOKEN-post", envTable) == "pre-tok-post"
+    delEnv("NPI_MIX_TOKEN")

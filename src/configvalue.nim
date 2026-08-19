@@ -1,7 +1,7 @@
 ## 配置值解析：对齐 pi `resolve-config-value.ts`。
 ## 支持 $ENV / ${ENV} / $!cmd 命令 / $$ $! 字面 / 混合模板。
 
-import std/[os, strutils, tables, osproc]
+import std/[strutils, tables, osproc]
 
 type
   TemplatePartKind* = enum
