@@ -28,6 +28,7 @@ import ../src/exec
 import ../src/attribution
 import ../src/diagnostics
 import ../src/settings
+import ../src/credentials
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -1182,3 +1183,34 @@ suite "settingsintegrate":
     check st.compaction.reserveTokens == 16384
     check st.compaction.keepRecentTokens == 20000
     check st.compaction.enabled
+
+suite "credentials":
+  test "setRuntimeApiKey 覆盖":
+    let rc = newRuntimeCredentials(nil)
+    rc.setRuntimeApiKey("openai", "sk-override")
+    check rc.hasRuntimeApiKey("openai")
+    check rc.read("openai") == "sk-override"
+
+  test "read 回退 base":
+    var env = newRuntimeCredentials(proc(pid: string): string =
+      if pid == "openai": getEnv("OPENAI_API_KEY", "") else: "")
+    env.setRuntimeApiKey("anthropic", "ak-override")
+    check env.read("openai") == getEnv("OPENAI_API_KEY", "")
+    check env.read("anthropic") == "ak-override"
+    check env.read("gemini") == ""
+
+  test "removeRuntimeApiKey":
+    let rc = newRuntimeCredentials(nil)
+    rc.setRuntimeApiKey("x", "k")
+    rc.removeRuntimeApiKey("x")
+    check not rc.hasRuntimeApiKey("x")
+    check rc.read("x") == ""
+
+  test "list 覆盖 provider":
+    let rc = newRuntimeCredentials(nil)
+    rc.setRuntimeApiKey("openai", "k1")
+    rc.setRuntimeApiKey("gemini", "k2")
+    let l = rc.list()
+    check l.len == 2
+    check "openai" in l
+    check "gemini" in l
