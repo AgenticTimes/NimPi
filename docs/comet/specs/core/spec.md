@@ -1,18 +1,24 @@
-# NPI SettingsIntegrate — Specification
+# NPI Credentials — Specification
 
 ## 目标
-把 settings 模块接入 agent 实际路径，消除 0-ref 孤岛。
+为 npi 实现运行时 API key 覆盖（对齐 pi runtime-credentials.ts）：非持久凭据覆盖。
 
 ## 范围
-- `agent.nim` newAgent：compactionSettings 用 settings.defaultSettings().compaction 初始化（映射 reserveTokens/keepRecentTokens/contextWindow）
-- npi.nim：agent 创建处不再重复设置 compaction（保留 NPI_CONTEXT_WINDOW 覆盖）
+- `src/credentials.nim`：
+  - `RuntimeCredentials`：overrides Table（providerId → apiKey）
+  - `setRuntimeApiKey(providerId, key)` / `removeRuntimeApiKey` / `hasRuntimeApiKey`
+  - `read(providerId)`：覆盖优先，否则回退 base（env 查找）
+  - `list()`：列出覆盖 + base
+- 接入（可选）：CLI --api-key 用 setRuntimeApiKey 存覆盖
 
 ## 非目标
-- 完整 settings 加载 —— 用默认值
-- exec/diagnostics 接入 —— 独立 API
+- 持久凭据存储 —— 运行时覆盖
+- 完整 CredentialStore 接口 —— 核心方法
 
 ## 验收
-- [ ] newAgent compactionSettings 来自 settings
-- [ ] NPI_CONTEXT_WINDOW 仍可覆盖
-- [ ] 现有单测全绿
-- [ ] 集成单测
+- [ ] setRuntimeApiKey 覆盖
+- [ ] read 覆盖优先
+- [ ] read 回退 base
+- [ ] remove/has
+- [ ] list 合并
+- [ ] 单测覆盖
