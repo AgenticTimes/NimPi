@@ -35,6 +35,7 @@ import ../src/editdiff
 import ../src/trust
 import ../src/authstorage
 import ../src/modelconfig
+import ../src/fuzzy
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -1918,3 +1919,59 @@ suite "credintegrate":
       getEnv("OPENAI_API_KEY", ""))
     check creds.read("openai") == "env-key"
     delEnv("OPENAI_API_KEY")
+
+suite "fuzzy":
+  test "空 query 匹配 score 0":
+    let m = fuzzyMatch("", "anything")
+    check m.matches
+    check m.score == 0.0
+
+  test "顺序子序列匹配":
+    check fuzzyMatch("abc", "aXbYc").matches
+    check fuzzyMatch("abc", "zabbc").matches
+
+  test "顺序错误不匹配":
+    check not fuzzyMatch("abc", "cba").matches
+    check not fuzzyMatch("abc", "ab").matches
+
+  test "query 长于 text 不匹配":
+    check not fuzzyMatch("abcdef", "abc").matches
+
+  test "完全匹配最低分":
+    let exact = fuzzyMatch("hello", "hello")
+    let partial = fuzzyMatch("hel", "hello")
+    check exact.matches and partial.matches
+    check exact.score < partial.score
+
+  test "词边界奖励":
+    let boundary = fuzzyMatch("fz", "fuzzy-zebra")
+    let nonBoundary = fuzzyMatch("fz", "xfzyzebra")
+    check boundary.matches and nonBoundary.matches
+    check boundary.score < nonBoundary.score
+
+  test "字母数字交换变体":
+    let swapped = fuzzyMatch("abc123", "123abc")
+    check swapped.matches
+
+  test "fuzzyFilter token 过滤（空白/slash 分隔，全 token 匹配）":
+    let items = @["src/core/agent.ts", "src/core/exec.ts", "tests/test_core.nim"]
+    let r1 = fuzzyFilter(items, "core agent", proc(x: string): string = x)
+    check r1.len == 1
+    check r1[0] == "src/core/agent.ts"
+    let r2 = fuzzyFilter(items, "core tests", proc(x: string): string = x)
+    check r2.len == 1
+    check r2[0] == "tests/test_core.nim"
+
+  test "fuzzyFilter 空 query 返回全部":
+    let items = @["a", "b"]
+    check fuzzyFilter(items, "", proc(x: string): string = x).len == 2
+
+  test "fuzzyFilter 排序（最优在前）":
+    let items = @["src/core/exec.ts", "src/exec/runner.ts", "src/other.ts"]
+    let r = fuzzyFilter(items, "exec", proc(x: string): string = x)
+    check r.len == 2
+    check r[0] == "src/exec/runner.ts" or r[0] == "src/core/exec.ts"
+
+  test "fuzzyFilter 无匹配返回空":
+    let items = @["apple", "banana"]
+    check fuzzyFilter(items, "xyz", proc(x: string): string = x).len == 0
