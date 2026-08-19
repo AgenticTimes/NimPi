@@ -1,22 +1,24 @@
-# NPI Exec — Specification
+# NPI Attribution — Specification
 
 ## 目标
-为 npi 实现 execCommand（对齐 pi exec.ts）：执行命令返回分离的 stdout/stderr/code/killed，支持 timeout。
+为 npi 实现 provider 归属判定与 attribution header 生成（对齐 pi provider-attribution.ts）。
 
 ## 范围
-- `src/exec.nim`：
-  - `ExecOptions`：timeout、cwd
-  - `ExecResult`：stdout、stderr、code、killed
-  - `execCommand(command, args, cwd, opts)`：startProcess + 收集 stdout/stderr（分离管道）+ 超时终止（SIGTERM→5s 后 SIGKILL）
-- 与 bashtimeout 区分：本模块返回分离流，bashtimeout 合并输出
+- `src/attribution.nim`：
+  - `matchesHost(baseUrl, expectedHost)`：解析 host 匹配（简化，字符串包含）
+  - 归属判定：isOpenRouter/isNvidiaNim/isCloudflare/isOpenCode（provider 名或 baseUrl host）
+  - `mergeProviderAttributionHeaders(provider, baseUrl, sessionId, enabled)`：合并归属 header
+- 接入：llm 请求头（可选，enabled 开关）
 
 ## 非目标
-- AbortSignal —— 仅 timeout
-- 合并输出 —— bashtimeout 已有
+- URL 严格解析 —— host 包含匹配
+- telemetry 设置集成 —— enabled 参数
 
 ## 验收
-- [ ] stdout/stderr 分离
-- [ ] code 返回
-- [ ] 超时终止 + killed 标记
-- [ ] SIGTERM 后 SIGKILL 升级
+- [ ] matchesHost 判定
+- [ ] openrouter 归属 + header
+- [ ] nvidia 归属 + header
+- [ ] cloudflare 归属 + header
+- [ ] opencode session header
+- [ ] 未启用/未知 provider 无 header
 - [ ] 单测覆盖
