@@ -1,32 +1,197 @@
 schema: comet.native.v4
 name: npi-exec
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-exec
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 实现 execCommand（对齐 pi exec.ts）：执行命令返回分离的 stdout/stderr/code/killed，支持
+      timeout。
+    result: passed
+    reason:
+      text: execCommand 对齐 pi exec.ts
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/exec.nim`："
+    result: passed
+    reason:
+      text: src/exec.nim：ExecOptions/ExecResult/execCommand
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`ExecOptions`：timeout、cwd"
+    result: passed
+    reason:
+      text: stdout/stderr 分离
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`ExecResult`：stdout、stderr、code、killed"
+    result: passed
+    reason:
+      text: code 返回
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`execCommand(command, args, cwd, opts)`：startProcess + 收集
+      stdout/stderr（分离管道）+ 超时终止（SIGTERM→5s 后 SIGKILL）"
+    result: passed
+    reason:
+      text: 超时终止 + killed
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 与 bashtimeout 区分：本模块返回分离流，bashtimeout 合并输出
+    result: passed
+    reason:
+      text: SIGTERM→SIGKILL 升级
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] stdout/stderr 分离"
+    result: passed
+    reason:
+      text: 花括号分组重定向分离流
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] code 返回"
+    result: passed
+    reason:
+      text: cwd 生效
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 超时终止 + killed 标记"
+    result: passed
+    reason:
+      text: 分离/超时/cwd（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] SIGTERM 后 SIGKILL 升级"
+    result: passed
+    reason:
+      text: 与 bashtimeout 区分（分离流）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 132 项）
+      truncated: false
+builder_handoff:
+  candidate_id: c2fb91de-877e-4349-8b94-72a71ea22ba3
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:df0f7353-4d8e-40ce-8e82-0ae52207c94f
+  iteration: 1
+  summary:
+    text: 实现 execCommand 对齐 pi
+      exec.ts：ExecOptions(timeout/cwd)/ExecResult(stdout/stderr/code/killed)，花括号分组重定向
+      { CMD; } > out 2> err 分离两流（避免分号后重定向只作用末条），SIGTERM→5s 后 SIGKILL 升级。与
+      bashtimeout 区分：返回分离流。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 132 单测全绿（含 4 个 exec 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: AbortSignal 待后续
+      truncated: false
+    - text: 合并输出用 bashtimeout
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-19T00:29:22.876Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: c2fb91de-877e-4349-8b94-72a71ea22ba3
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:1c19c4a9-644a-448f-ba8e-175b3f2e294f
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-ex-ut
+      name:
+        text: NPI Exec 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_ex_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 4676
+  summary:
+    text: NPI Exec 验收全过：comet Runtime 实跑 132 单测 OK。
+    truncated: false
+  risks:
+    - text: AbortSignal 待后续
+      truncated: false
+    - text: 合并输出用 bashtimeout
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-19T00:29:38.211Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Exec 验收全过：comet Runtime 实跑 132 单测 OK。
+      truncated: false
+    completed_at: 2026-08-19T00:29:38.211Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +202,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-19T00:24:21.765Z
