@@ -1,7 +1,7 @@
 ## npi — 极简编码 agent（Nim）入口。
 ## `npi -p "..."` 打印模式 · `npi` 全屏 TUI（stdin 非 TTY 时退化为 REPL）· `-r` 恢复最近会话。
 
-import std/[os, strutils, asyncdispatch, json, terminal, tables, times]
+import std/[os, strutils, asyncdispatch, json, terminal, tables, times, options]
 import ./types
 import ./llm
 import ./agent
@@ -18,6 +18,7 @@ import ./usagetotals
 import ./cachestats
 import ./configvalue
 import ./timings
+import ./trust
 
 type
   CliArgs = object
@@ -36,6 +37,7 @@ type
   AgentDriver = object
     client*: LlmClient
     agent*: Agent
+    projectTrusted*: bool
 
 proc parseArgs(argv: seq[string]): CliArgs =
   result.provider = getEnv("NPI_PROVIDER", "openai")
@@ -109,7 +111,7 @@ proc parseArgs(argv: seq[string]): CliArgs =
   if positional.len > 0:
     result.prompt = positional.join(" ")
 
-proc systemPrompt(cwd: string): string =
+proc systemPrompt(cwd: string, trustProject = true): string =
   result = """You are npi, a coding agent that helps with programming tasks in the current repository.
 
 You have access to tools: read, write, edit, bash, ls, grep, find.
@@ -123,7 +125,7 @@ You have access to tools: read, write, edit, bash, ls, grep, find.
 
 Work iteratively: inspect, then edit, then verify. Keep responses concise. When done, summarize what you changed.""" % cwd
   # 注入 Agent Skills（对齐 pi skills 系统）
-  let skills = loadSkills(cwd)
+  let skills = loadSkills(cwd, trustProject)
   let skillsPrompt = skills.skills.formatSkillsForPrompt()
   if skillsPrompt.len > 0:
     result.add "\n\n" & skillsPrompt
@@ -250,7 +252,7 @@ proc runTui*(driver: var AgentDriver, session: var Session, cwd: string): int =
       return "技能 " & arg & " 需在 system prompt 中注入后由模型匹配"
     else: return name
   tui.addLine("npi — Nim 编码 agent。输入问题，Enter 发送，Ctrl+C 退出。")
-  let templates = loadTemplates(cwd)  # 加载 prompt 模板
+  let templates = loadTemplates(cwd, driver.projectTrusted)  # 加载 prompt 模板
   tui.render()
   var currentMark = 0
   while not tui.exitApp:
@@ -331,7 +333,7 @@ proc runRepl*(driver: var AgentDriver, session: var Session, cwd: string): int =
     stdout.flushFile()
     let line = stdin.readLine()
     if line.strip.len == 0: continue
-    let templates = loadTemplates(cwd)
+    let templates = loadTemplates(cwd, driver.projectTrusted)
     var input = line.strip
     # 模板展开优先（/name 命中模板且非 slash 命令 → 转对话）
     if input.startsWith("/") and not commands.hasKey(parseSlash(input).command):
@@ -358,6 +360,22 @@ proc printMessage(d: string) =
   stdout.write(d)
   stdout.flushFile()
 
+proc selectTrustOption(cwd: string, options: seq[TrustOption]): Option[TrustOption] =
+  ## 简单数字选择（对齐 pi selectProjectTrustOption 的交互语义，illwill 最小实现）。
+  stderr.writeLine(formatProjectTrustPrompt(cwd))
+  for i, o in options:
+    stderr.writeLine("  " & $(i + 1) & ") " & o.label)
+  stderr.write("选择 [1-" & $options.len & "] (q 取消): ")
+  stderr.flushFile()
+  let line = stdin.readLine()
+  let sel = line.strip
+  if sel.len == 0 or sel.toLowerAscii == "q":
+    return none(TrustOption)
+  let n = try: parseInt(sel) except ValueError: 0
+  if n >= 1 and n <= options.len:
+    return some(options[n - 1])
+  none(TrustOption)
+
 proc main() =
   resetTimings("main")
   let args = parseArgs(commandLineParams())
@@ -369,6 +387,26 @@ proc main() =
     quit(1)
 
   let cwd = getCurrentDir()
+
+  # 项目信任判定（对齐 pi project-trust 接入）：
+  # NPI_TRUST=always|never 强制；否则按决策流（store 记录 → default ask → UI 询问）。
+  let trustAgentDir = getEnv("NPI_AGENT_DIR", getHomeDir() / ".npi")
+  let trustStore = newProjectTrustStore(trustAgentDir)
+  var trustOverride: Option[bool]
+  case getEnv("NPI_TRUST", "ask").toLowerAscii
+  of "always": trustOverride = some(true)
+  of "never": trustOverride = some(false)
+  else: trustOverride = none(bool)
+  let uiSelect: UiSelect =
+    if args.printMode: nil
+    else: selectTrustOption
+  let projectTrusted = resolveProjectTrusted(ResolveTrustOptions(
+    cwd: cwd,
+    trustStore: trustStore,
+    trustOverride: trustOverride,
+    defaultTrust: "ask",
+    uiSelect: uiSelect))
+
   var agent = newAgent(nil, cwd)
   time("agent-init", "main")
   agent.maxIterations = args.maxIterations
@@ -380,7 +418,7 @@ proc main() =
     try:
       agent.compactionSettings.contextWindow = parseInt(cwEnv)
     except ValueError: discard
-  agent.setSystemPrompt(systemPrompt(cwd))
+  agent.setSystemPrompt(systemPrompt(cwd, projectTrusted))
 
   # 模型解析：若 --model 含 provider/ 前缀，顺带切换 provider；剥离 thinking level
   var effectiveModel = args.model
@@ -400,7 +438,7 @@ proc main() =
     provider: effectiveProvider,
     apiKey: args.apiKey, baseUrl: args.baseUrl,
     model: effectiveModel, timeoutMs: 300000))
-  var driver = AgentDriver(client: client, agent: agent)
+  var driver = AgentDriver(client: client, agent: agent, projectTrusted: projectTrusted)
 
   # 会话
   var session = Session()

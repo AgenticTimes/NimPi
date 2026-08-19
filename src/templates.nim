@@ -185,11 +185,12 @@ proc loadTemplatesFromDir*(dir: string): seq[PromptTemplate] =
       result.add loadTemplatesFromDir(path)
     else: discard
 
-proc loadTemplates*(cwd: string): seq[PromptTemplate] =
+proc loadTemplates*(cwd: string, trustProject = true): seq[PromptTemplate] =
   ## 加载用户级 ~/.npi/prompts + 项目级 .npi/prompts。
+  ## trustProject=false（项目未信任）时跳过项目级 .npi/prompts。
   let userDir = getEnv("NPI_AGENT_DIR", getHomeDir() / ".npi") / "prompts"
-  let projectDir = cwd / ".npi" / "prompts"
-  result = loadTemplatesFromDir(projectDir)
+  if trustProject:
+    result.add loadTemplatesFromDir(cwd / ".npi" / "prompts")
   result.add loadTemplatesFromDir(userDir)
 
 proc expandPromptTemplate*(text: string, templates: seq[PromptTemplate]): string =

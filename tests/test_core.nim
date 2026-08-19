@@ -1,6 +1,6 @@
 ## 单元测试：wire 序列化与 agent 工具分发。
 
-import std/[unittest, json, os, strutils, sequtils, algorithm, osproc, times, tables]
+import std/[unittest, json, os, strutils, sequtils, algorithm, osproc, times, tables, options]
 import ../src/types
 import ../src/agent
 import ../src/llm
@@ -29,6 +29,7 @@ import ../src/attribution
 import ../src/diagnostics
 import ../src/settings
 import ../src/credentials
+import ../src/trust
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -1214,3 +1215,172 @@ suite "credentials":
     check l.len == 2
     check "openai" in l
     check "gemini" in l
+
+suite "trust":
+  test "findNearestTrustEntry 沿目录向上":
+    var data = initTable[string, Option[bool]]()
+    data["/tmp/trusted"] = some(true)
+    let found = findNearestTrustEntry(data, "/tmp/trusted/sub/deep")
+    check found.isSome
+    check found.get.decision
+    check found.get.path == "/tmp/trusted"
+
+  test "findNearestTrustEntry 当前目录命中":
+    var data = initTable[string, Option[bool]]()
+    data["/tmp/trusted"] = some(false)
+    let found = findNearestTrustEntry(data, "/tmp/trusted")
+    check found.isSome
+    check not found.get.decision
+
+  test "findNearestTrustEntry 无记录返回 none":
+    var data = initTable[string, Option[bool]]()
+    check findNearestTrustEntry(data, "/tmp/x").isNone
+
+  test "findNearestTrustEntry none 条目继续向上":
+    var data = initTable[string, Option[bool]]()
+    data["/tmp/trusted/sub"] = none(bool)  # 无记录（删除标记），继续向上
+    data["/tmp/trusted"] = some(true)
+    let found = findNearestTrustEntry(data, "/tmp/trusted/sub/deep")
+    check found.isSome
+    check found.get.path == "/tmp/trusted"
+
+  test "getProjectTrustParentPath 普通目录":
+    check getProjectTrustParentPath("/tmp/proj") == "/tmp"
+
+  test "getProjectTrustOptions 默认 3 项（Trust/父目录/拒绝）":
+    let opts = getProjectTrustOptions("/tmp/proj")
+    check opts.len == 3
+    check opts[0].label == "Trust"
+    check opts[0].trusted
+    check opts[0].savedPath == "/tmp/proj"
+    check opts[1].label == "Trust parent folder (/tmp)"
+    check opts[1].trusted
+    check opts[2].label == "Do not trust"
+    check not opts[2].trusted
+
+  test "getProjectTrustOptions includeSessionOnly 5 项":
+    let opts = getProjectTrustOptions("/tmp/proj", includeSessionOnly = true)
+    check opts.len == 5
+    check opts[2].label == "Trust (this session only)"
+    check opts[2].updates.len == 0
+    check opts[4].label == "Do not trust (this session only)"
+
+  test "getProjectTrustOptions session-only 选项不持久化":
+    let opts = getProjectTrustOptions("/tmp/proj", includeSessionOnly = true)
+    check opts[2].savedPath.len == 0
+    check opts[4].savedPath.len == 0
+
+  test "hasTrustRequiringProjectResources":
+    # 有 .npi/skills 的目录
+    discard execCmdEx("mkdir -p /tmp/npi_trust_test/.npi/skills")
+    check hasTrustRequiringProjectResources("/tmp/npi_trust_test")
+    # 有 .npi/prompts 的目录
+    discard execCmdEx("mkdir -p /tmp/npi_trust_p/.npi/prompts")
+    check hasTrustRequiringProjectResources("/tmp/npi_trust_p")
+    # 无资源目录
+    discard execCmdEx("mkdir -p /tmp/npi_trust_empty")
+    check not hasTrustRequiringProjectResources("/tmp/npi_trust_empty")
+
+  test "hasTrustRequiringProjectResources 祖先 .agents/skills":
+    discard execCmdEx("mkdir -p /tmp/npi_trust_anc/.agents/skills")
+    discard execCmdEx("mkdir -p /tmp/npi_trust_anc/proj/deep")
+    check hasTrustRequiringProjectResources("/tmp/npi_trust_anc/proj/deep")
+
+  test "ProjectTrustStore set/get 往返":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_store.json")
+    removeFile("/tmp/npi_trust_store.json")
+    check store.get("/tmp/proj").isNone
+    store.set("/tmp/proj", some(true))
+    let v = store.get("/tmp/proj")
+    check v.isSome and v.get
+    check store.get("/tmp/proj/sub").isSome  # 子目录沿目录向上命中
+
+  test "ProjectTrustStore setMany 合并与删除":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_store2.json")
+    removeFile("/tmp/npi_trust_store2.json")
+    store.setMany(@[
+      TrustUpdate(path: "/tmp/a", decision: some(true)),
+      TrustUpdate(path: "/tmp/b", decision: some(false)),
+    ])
+    check store.get("/tmp/a").get
+    check not store.get("/tmp/b").get
+    store.setMany(@[TrustUpdate(path: "/tmp/a", decision: none(bool))])
+    check store.get("/tmp/a").isNone
+    check not store.get("/tmp/b").get  # 删除不影响其他条目
+
+  test "ProjectTrustStore 非法 JSON 抛错":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_bad.json")
+    writeFile("/tmp/npi_trust_bad.json", "{not json")
+    expect ValueError:
+      discard store.get("/tmp/proj")
+
+  test "ProjectTrustStore 非法值抛错":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_badval.json")
+    writeFile("/tmp/npi_trust_badval.json", "{\"/tmp/x\": 42}")
+    expect ValueError:
+      discard store.get("/tmp/x")
+
+  test "resolveProjectTrusted override 优先":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_none.json")
+    check resolveProjectTrusted(ResolveTrustOptions(
+      cwd: "/tmp/npi_trust_test", trustStore: store,
+      trustOverride: some(true)))
+    check not resolveProjectTrusted(ResolveTrustOptions(
+      cwd: "/tmp/npi_trust_test", trustStore: store,
+      trustOverride: some(false)))
+
+  test "resolveProjectTrusted 无资源直接信任":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_none2.json")
+    check resolveProjectTrusted(ResolveTrustOptions(cwd: "/tmp/npi_trust_empty", trustStore: store))
+
+  test "resolveProjectTrusted store 记录优先":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_rec.json")
+    removeFile("/tmp/npi_trust_rec.json")
+    store.set("/tmp/npi_trust_test", some(true))
+    check resolveProjectTrusted(ResolveTrustOptions(
+      cwd: "/tmp/npi_trust_test", trustStore: store, defaultTrust: "ask"))
+
+  test "resolveProjectTrusted always/never":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_an.json")
+    check resolveProjectTrusted(ResolveTrustOptions(
+      cwd: "/tmp/npi_trust_test", trustStore: store, defaultTrust: "always"))
+    check not resolveProjectTrusted(ResolveTrustOptions(
+      cwd: "/tmp/npi_trust_test", trustStore: store, defaultTrust: "never"))
+
+  test "resolveProjectTrusted 无 UI + ask + 无记录 → false":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_none3.json")
+    removeFile("/tmp/npi_trust_none3.json")
+    check not resolveProjectTrusted(ResolveTrustOptions(
+      cwd: "/tmp/npi_trust_test", trustStore: store, defaultTrust: "ask"))
+
+  test "resolveProjectTrusted UI 选择 Trust 并持久化":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_ui.json")
+    removeFile("/tmp/npi_trust_ui.json")
+    let ui = proc(cwd: string, options: seq[TrustOption]): Option[TrustOption] =
+      # 选第一个（Trust）
+      if options.len > 0: some(options[0]) else: none(TrustOption)
+    check resolveProjectTrusted(ResolveTrustOptions(
+      cwd: "/tmp/npi_trust_test", trustStore: store,
+      defaultTrust: "ask", uiSelect: ui))
+    # 选择已持久化
+    check store.get("/tmp/npi_trust_test").get
+
+  test "resolveProjectTrusted UI 选择 session-only 不持久化":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_uises.json")
+    removeFile("/tmp/npi_trust_uises.json")
+    let ui = proc(cwd: string, options: seq[TrustOption]): Option[TrustOption] =
+      # 选第三个（Trust this session only，仅 includeSessionOnly 时有）
+      if options.len >= 3: some(options[2]) else: none(TrustOption)
+    check resolveProjectTrusted(ResolveTrustOptions(
+      cwd: "/tmp/npi_trust_test", trustStore: store,
+      defaultTrust: "ask", uiSelect: ui))
+    check store.get("/tmp/npi_trust_test").isNone  # 未持久化
+
+  test "resolveProjectTrusted UI 取消 → false":
+    let store = ProjectTrustStore(trustPath: "/tmp/npi_trust_uicancel.json")
+    removeFile("/tmp/npi_trust_uicancel.json")
+    let ui = proc(cwd: string, options: seq[TrustOption]): Option[TrustOption] =
+      none(TrustOption)
+    check not resolveProjectTrusted(ResolveTrustOptions(
+      cwd: "/tmp/npi_trust_test", trustStore: store,
+      defaultTrust: "ask", uiSelect: ui))
