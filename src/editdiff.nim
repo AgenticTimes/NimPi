@@ -1,7 +1,7 @@
 ## 模糊匹配编辑：对齐 pi `core/tools/edit-diff.ts` 核心编辑语义。
 ## normalizeForFuzzyMatch 字符集 / fuzzyFindText 精确→模糊 / applyEdits 五类错误 / 行尾处理。
 
-import std/[strutils, unicode, algorithm]
+import std/[strutils, algorithm]
 
 type
   Edit* = object
