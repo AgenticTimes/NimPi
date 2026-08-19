@@ -20,6 +20,7 @@ import ./configvalue
 import ./timings
 import ./modelconfig
 import ./authstorage
+import ./credentials
 import ./trust
 import ./systemprompt
 
@@ -433,13 +434,21 @@ proc main() =
     if effectiveModel.len == 0:
       effectiveModel = defaultModelForProvider(effectiveProvider)
 
-  # auth.json 持久凭据优先于 env（未显式 --api-key 时），对齐 pi 凭据层级
-  var cfgApiKey = args.apiKey
-  if not args.explicitApiKey and cfgApiKey.len == 0:
-    let authStore = newAuthStorage()
-    let stored = authStore.readStoredCredential(effectiveProvider)
+  # 统一凭据解析（对齐 pi RuntimeCredentials：运行时覆盖 + 持久 store + env base）
+  let authStore = newAuthStorage()
+  let creds = newRuntimeCredentials(proc(pid: string): string =
+    # base：auth.json 持久凭据，其次 env
+    let stored = authStore.readStoredCredential(pid)
     if stored.len > 0:
-      cfgApiKey = stored
+      stored
+    else:
+      case pid
+      of "anthropic": getEnv("ANTHROPIC_API_KEY", "")
+      of "gemini": getEnv("GEMINI_API_KEY", "")
+      else: getEnv("OPENAI_API_KEY", getEnv("NPI_API_KEY", "")))
+  if args.explicitApiKey:
+    creds.setRuntimeApiKey(effectiveProvider, args.apiKey)
+  var cfgApiKey = creds.read(effectiveProvider)
   # 加载 models.json（NPI_MODELS 指定路径），provider 配置的 baseUrl/apiKey 优先
   var cfgBaseUrl = args.baseUrl
   let modelsPath = getEnv("NPI_MODELS", "")
