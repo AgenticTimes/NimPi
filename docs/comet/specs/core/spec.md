@@ -1,24 +1,22 @@
-# NPI ConfigValue — Specification
+# NPI Timings — Specification
 
 ## 目标
-为 npi 实现配置值解析（对齐 pi resolve-config-value.ts）：支持环境变量、shell 命令、字面量的配置模板。
+为 npi 实现启动/阶段性能计时（对齐 pi timings.ts）：环境变量开关、分段间隔计时、分组输出。
 
 ## 范围
-- `src/configvalue.nim`：
-  - `parseConfigValueTemplate(config)`：解析 `$ENV`、`${ENV}`、`$!cmd`、`$$`/`$!` 字面、混合字面量
-  - `resolveConfigValue(config, env)`：env 查找 + 命令执行（$! 前缀）+ 结果缓存
-  - `getConfigValueEnvVarNames` / `isConfigValueConfigured` / `getMissingConfigValueEnvVarNames`
-- 接入：CLI apiKey 解析可用（可选）
+- `src/timings.nim`：
+  - `TimingNamespace`：timings 列表 + lastTime
+  - `resetTimings(namespace)`、`time(label, namespace)` 间隔计时、`printTimings()`
+  - 开关：NPI_TIMING=1（对齐 pi PI_TIMING）
+  - 未启用时全部 no-op
+- 接入：main 里 reset/time 标记关键阶段（可选）
 
 ## 非目标
-- 完整 shell 执行安全 —— 命令由用户配置提供
-- resolveHeaders —— 后续
+- 完整 profiling —— 简单间隔计时
 
 ## 验收
-- [ ] 解析 $ENV 字面
-- [ ] 解析 ${ENV}
-- [ ] $!cmd 命令执行
-- [ ] $$ / $! 字面转义
-- [ ] 混合模板
-- [ ] env 未配置返回 missing
+- [ ] 未启用时 no-op
+- [ ] reset 初始化
+- [ ] time 记录间隔
+- [ ] print 分组输出
 - [ ] 单测覆盖
