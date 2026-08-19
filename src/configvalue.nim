@@ -125,3 +125,18 @@ proc getConfigValueEnvVarNames*(config: string): seq[string] =
 proc isConfigValueConfigured*(config: string, env: Table[string, string]): bool =
   ## 配置是否已解析出非空值（对齐 pi）。
   resolveConfigValue(config, env).len > 0
+# ---------------------------------------------------------------------------
+# resolveHeaders：header 表逐项解析（对齐 pi resolve-config-value.ts resolveHeaders）
+# ---------------------------------------------------------------------------
+
+proc resolveHeaders*(headers: Table[string, string], env: Table[string, string]): Table[string, string] =
+  ## 逐项 resolveConfigValue，空值跳过（对齐 pi resolveHeaders）。
+  result = initTable[string, string]()
+  for key, value in headers:
+    let resolved = resolveConfigValue(value, env)
+    if resolved.len > 0:
+      result[key] = resolved
+
+proc clearConfigValueCache*() =
+  ## 清命令结果缓存（对齐 pi clearConfigValueCache）。
+  commandCache.clear()
