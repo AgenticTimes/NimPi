@@ -39,6 +39,7 @@ import ../src/fuzzy
 import ../src/tui
 import ../src/manifest
 import ../src/sourceinfo
+import ../src/authguidance
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -2092,3 +2093,28 @@ suite "manifest-info":
     check si.scope == scopeTemporary
     check si.origin == originTopLevel
     check si.baseDir == ""
+
+suite "authguidance":
+  test "login help 含文档路径":
+    let h = getProviderLoginHelp("/docs")
+    check h.contains("Use /login")
+    check h.contains("/docs/providers.md")
+    check h.contains("/docs/models.md")
+
+  test "no models 消息":
+    let m = formatNoModelsAvailableMessage("/docs")
+    check m.startsWith("No models available.")
+    check m.contains("/login")
+
+  test "no model selected 消息":
+    let m = formatNoModelSelectedMessage("/docs")
+    check m.contains("No model selected.")
+    check m.contains("/model to select a model")
+
+  test "no api key 已知 provider":
+    let m = formatNoApiKeyFoundMessage("anthropic", "/docs")
+    check m.startsWith("No API key found for anthropic.")
+
+  test "no api key unknown → the selected model":
+    let m = formatNoApiKeyFoundMessage("unknown", "/docs")
+    check m.startsWith("No API key found for the selected model.")
