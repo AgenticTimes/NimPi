@@ -16,6 +16,7 @@ import ./usagetotals
 import ./settings
 import ./cachestats
 import ./outputaccumulator
+import ./editdiff
 
 type
   ToolResultRaw* = tuple
@@ -90,13 +91,22 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
     let path = args{"path"}.getStr("")
     let oldText = args{"oldText"}.getStr("")
     let newText = args{"newText"}.getStr("")
+    if oldText.len == 0 or newText.len == 0:
+      return ("", name, "error: edit requires oldText and newText", true)
     try:
-      var s = readFile(path)
-      let i = s.find(oldText)
-      if i < 0: return ("", name, "error: oldText not found", true)
-      s = s[0 ..< i] & newText & s[i + oldText.len .. ^1]
-      writeFile(path, s)
+      let content = readFile(path)
+      let ending = detectLineEnding(content)
+      let normalized = normalizeToLF(content)
+      # 模糊匹配编辑（对齐 pi edit-diff 语义：精确→模糊、完整错误消息）
+      let res = applyEditsToNormalizedContent(normalized,
+        @[Edit(oldText: oldText, newText: newText)], path)
+      var resultContent = res.newContent
+      if ending == leCrLf:
+        resultContent = restoreLineEndings(resultContent, leCrLf)
+      writeFile(path, resultContent)
       return ("", name, "edited " & path, false)
+    except ValueError as e:
+      return ("", name, "error: " & e.msg, true)
     except CatchableError as e:
       return ("", name, "error: " & e.msg, true)
   of "bash", "sh", "run":
