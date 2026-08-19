@@ -3,7 +3,7 @@ name: npi-project-trust
 language: zh-CN
 phase: archive
 status: active
-state_version: 6
+state_version: 7
 brief: brief.md
 spec_changes:
   - capability: project-trust
@@ -13,7 +13,7 @@ workspace:
   isolation: branch
   change_branch: comet/npi-project-trust
   target_branch: master
-  finish: null
+  finish: merge
 loop:
   stage: archive-ready
   goal_cycle: 1
