@@ -1,32 +1,211 @@
 schema: comet.native.v4
 name: npi-configvalue
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-configvalue
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 实现配置值解析（对齐 pi resolve-config-value.ts）：支持环境变量、shell 命令、字面量的配置模板。
+    result: passed
+    reason:
+      text: 配置值解析对齐 pi resolve-config-value.ts
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/configvalue.nim`："
+    result: passed
+    reason:
+      text: src/configvalue.nim：parse/resolve/command/cache
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`parseConfigValueTemplate(config)`：解析 `$ENV`、`${ENV}`、`$!cmd`、`$$`/`$!`
+      字面、混合字面量"
+    result: passed
+    reason:
+      text: $ENV 字面解析
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`resolveConfigValue(config, env)`：env 查找 + 命令执行（$! 前缀）+ 结果缓存"
+    result: passed
+    reason:
+      text: ${ENV} 解析
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`getConfigValueEnvVarNames` / `isConfigValueConfigured` /
+      `getMissingConfigValueEnvVarNames`"
+    result: passed
+    reason:
+      text: $$/$! 字面转义
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 接入：CLI apiKey 解析可用（可选）
+    result: passed
+    reason:
+      text: 混合模板
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] 解析 $ENV 字面"
+    result: passed
+    reason:
+      text: $! 命令执行
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] 解析 ${ENV}"
+    result: passed
+    reason:
+      text: env 查找
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] $!cmd 命令执行"
+    result: passed
+    reason:
+      text: isConfigValueConfigured
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] $$ / $! 字面转义"
+    result: passed
+    reason:
+      text: 命令缓存
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 混合模板"
+    result: passed
+    reason:
+      text: getConfigValueEnvVarNames
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] env 未配置返回 missing"
+    result: passed
+    reason:
+      text: 模板解析/命令/env（单测）
+      truncated: false
+  - id: A13
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 125 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 9dd7caf8-dfda-4440-bb25-179d09bf9c54
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:cb1397f7-7b4b-420c-afe6-4aa8e7fb155b
+  iteration: 1
+  summary:
+    text: 实现配置值解析对齐 pi
+      resolve-config-value.ts：parseConfigValueTemplate（$ENV/${ENV}/$$/$!
+      字面/混合）、resolveTemplate、resolveCommand（$!
+      执行带缓存）、resolveConfigValue/isConfigValueConfigured/getConfigValueEnvVarNames。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 125 单测全绿（含 7 个 configvalue 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: resolveHeaders 待后续
+      truncated: false
+    - text: shell 命令安全由用户配置负责
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-19T00:16:34.591Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: 9dd7caf8-dfda-4440-bb25-179d09bf9c54
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:203916e4-cd38-49bc-81ca-b56f9f7040bf
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-cvv-ut
+      name:
+        text: NPI ConfigValue 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_cvv_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 1991
+  summary:
+    text: NPI ConfigValue 验收全过：comet Runtime 实跑 125 单测 OK。
+    truncated: false
+  risks:
+    - text: resolveHeaders 待后续
+      truncated: false
+    - text: shell 命令安全由用户配置负责
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-19T00:16:45.873Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI ConfigValue 验收全过：comet Runtime 实跑 125 单测 OK。
+      truncated: false
+    completed_at: 2026-08-19T00:16:45.873Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +216,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-19T00:15:20.696Z
