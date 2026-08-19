@@ -1,32 +1,194 @@
 schema: comet.native.v4
 name: npi-authintegrate
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-authintegrate
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 把 authstorage 接入 CLI apiKey 解析（对齐 pi 凭据层级：运行时覆盖 > auth.json > env）。
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`npi.nim` parseArgs/main：apiKey 解析顺序"
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`--api-key`（运行时覆盖，最高）"
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: auth.json 持久凭据（NPI_AGENT_DIR/auth.json）
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: env（OPENAI_API_KEY 等）
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 用 RuntimeCredentials 组合（credentials 模块已实现覆盖层）
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] auth.json 凭据优先于 env"
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] --api-key 最高优先"
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] 无凭据回退 env"
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] 现有单测全绿"
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 集成单测"
+    result: passed
+    reason:
+      text: auth.json 凭据接入 CLI（层级 --api-key > auth.json > env）
+      truncated: false
+builder_handoff:
+  candidate_id: cbc7a972-9874-4c7a-85fe-4582433c4131
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:2963df12-54df-4348-962d-6e67e3cd9682
+  iteration: 1
+  summary:
+    text: 把 authstorage 接入 CLI apiKey：凭据层级 --api-key(显式) > auth.json(持久) >
+      env。parseArgs 记录 explicitApiKey，main 里未显式时读 auth.json 凭据覆盖。消除 authstorage
+      0-ref 孤岛。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 249 单测全绿（含 3 个 authintegrate 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 凭据写入 CLI（/auth 命令）待后续
+      truncated: false
+    - text: credentials/diagnostics/exec 独立 API
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-19T04:18:06.794Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: cbc7a972-9874-4c7a-85fe-4582433c4131
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:33800d70-288c-4cc9-a5dd-8dba87088bf5
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-ai-ut
+      name:
+        text: NPI AuthIntegrate 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_ai_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 5312
+  summary:
+    text: NPI AuthIntegrate 验收全过：comet Runtime 实跑 249 单测 OK。
+    truncated: false
+  risks:
+    - text: 凭据写入 CLI 待后续
+      truncated: false
+    - text: credentials/diagnostics/exec 独立 API
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-19T04:18:21.289Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI AuthIntegrate 验收全过：comet Runtime 实跑 249 单测 OK。
+      truncated: false
+    completed_at: 2026-08-19T04:18:21.289Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +199,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-19T04:16:39.748Z
