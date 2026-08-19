@@ -1,27 +1,23 @@
-# NPI ManifestInfo — Specification
+# NPI AuthGuidance — Specification
 
 ## 目标
-对齐 pi-manifest（资源清单解析）与 source-info（来源信息数据），补齐 core 纯逻辑模块。
+对齐 pi auth-guidance.ts 的消息格式化（登录引导/无模型/无 API key），统一错误提示。
 
 ## 范围
-- `src/manifest.nim`：
-  - `PiManifest`（extensions/skills/prompts/themes）
-  - `readPiManifest(packageJsonPath): Option[PiManifest]`：解析 package.json 的 `pi` 字段，非法返回 none
-- `src/sourceinfo.nim`：
-  - `SourceScope`（user/project/temporary）、`SourceOrigin`（package/top-level）
-  - `SourceInfo`（path/source/scope/origin/baseDir）
-  - `createSourceInfo(path, source, scope, origin, baseDir)`
-  - `createSyntheticSourceInfo(path, source, scope=临时, origin=top-level)`
+- `src/authguidance.nim`：
+  - `getProviderLoginHelp(docsPath)`：登录引导文本
+  - `formatNoModelsAvailableMessage(docsPath)`：无模型可用
+  - `formatNoModelSelectedMessage(docsPath)`：无模型选中
+  - `formatNoApiKeyFoundMessage(provider, docsPath)`：无 API key（unknown provider 显示 "the selected model"）
 
 ## 非目标
-- package-manager（PathMetadata 来源）—— 边界，SourceInfo 字段直接传参
-- 接入 skills/加载链路 —— 后续
+- getDocsPath（config 依赖）—— 调用方传路径
+- /login 命令实现 —— 后续
 
 ## 验收
-- [ ] readPiManifest 解析 pi 字段
-- [ ] 无 pi 字段返回 none
-- [ ] 非法 JSON 返回 none
-- [ ] 非字符串数组忽略
-- [ ] SourceInfo 默认值
-- [ ] synthetic 默认 scope/origin
+- [ ] login help 含 providers/models 文档路径
+- [ ] no models 消息
+- [ ] no model selected 消息
+- [ ] no api key（已知 provider）
+- [ ] no api key（unknown → "the selected model"）
 - [ ] 单测覆盖
