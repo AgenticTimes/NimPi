@@ -1,6 +1,6 @@
 ## 单元测试：wire 序列化与 agent 工具分发。
 
-import std/[unittest, json, os, strutils, sequtils, algorithm, osproc, times]
+import std/[unittest, json, os, strutils, sequtils, algorithm, osproc, times, tables]
 import ../src/types
 import ../src/agent
 import ../src/llm
@@ -22,6 +22,7 @@ import ../src/pathutils
 import ../src/eventbus
 import ../src/usagetotals
 import ../src/cachestats
+import ../src/configvalue
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -880,3 +881,46 @@ suite "usageintegrate":
     agent.cacheWaste.addMiss(miss)
     check agent.cacheWaste.missCount == 1
     check agent.cacheWaste.missedTokens == 4000
+
+suite "configvalue":
+  test "解析 $ENV 字面":
+    let parts = parseConfigValueTemplate("$HOME")
+    check parts.len == 1
+    check parts[0].kind == tpEnv
+    check parts[0].value == "HOME"
+
+  test "解析 ${ENV}":
+    let parts = parseConfigValueTemplate("${PATH}")
+    check parts[0].kind == tpEnv
+    check parts[0].value == "PATH"
+
+  test "$$ 和 $! 字面转义":
+    let parts = parseConfigValueTemplate("$$literal")
+    check parts[0].kind == tpLiteral
+    check parts[0].value == "$"
+    check parts[1].kind == tpLiteral
+    check parts[1].value == "literal"
+
+  test "混合模板":
+    let parts = parseConfigValueTemplate("key=$API_KEY;suffix")
+    # key= | API_KEY | ;suffix
+    check parts.len == 3
+    check parts[0].value == "key="
+    check parts[1].kind == tpEnv
+    check parts[1].value == "API_KEY"
+    check parts[2].value == ";suffix"
+
+  test "resolveConfigValue env 查找":
+    var env = initTable[string, string]()
+    env["API_KEY"] = "secret123"
+    check resolveConfigValue("$API_KEY", env) == "secret123"
+    check resolveConfigValue("prefix-$API_KEY-suffix", env) == "prefix-secret123-suffix"
+
+  test "命令配置 $! 执行":
+    check resolveConfigValue("$!echo hello", initTable[string, string]()) == "hello"
+
+  test "isConfigValueConfigured":
+    var env = initTable[string, string]()
+    check not isConfigValueConfigured("$MISSING", env)
+    env["MISSING"] = "x"
+    check isConfigValueConfigured("$MISSING", env)
