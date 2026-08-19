@@ -1,29 +1,27 @@
-# NPI TUI Palette — Specification
+# NPI ManifestInfo — Specification
 
 ## 目标
-给 npi TUI 加命令面板：`/` 前缀激活 palette 模式，fuzzy 过滤命令，↑/↓ 选择，Enter 确认选中。
+对齐 pi-manifest（资源清单解析）与 source-info（来源信息数据），补齐 core 纯逻辑模块。
 
 ## 范围
-- `src/tui.nim` 扩展：
-  - `Tui` 加 `commands*: seq[string]`、`paletteMode*: bool`、`paletteIndex*: int`
-  - `setCommands(tui, cmds)`：设置可用命令
-  - `/` 输入进入 palette（paletteQuery = input[1..]）
-  - palette 模式渲染：fuzzy 过滤命令列表，当前选择高亮，状态行显示"命令面板"
-  - ↑/↓ 在 palette 列表中移动选择
-  - Enter：palette 模式选中命令（输入框显示 `/命令`），退出 palette
-  - Esc（evQuit 之外）：退出 palette 清空输入？→ 退出 palette 保留输入
-  - `paletteMatches(tui): seq[string]`：当前 fuzzy 匹配结果（供测试/消费）
-- 单测：fuzzy 过滤、选择移动、Enter 确认、Esc 退出
+- `src/manifest.nim`：
+  - `PiManifest`（extensions/skills/prompts/themes）
+  - `readPiManifest(packageJsonPath): Option[PiManifest]`：解析 package.json 的 `pi` 字段，非法返回 none
+- `src/sourceinfo.nim`：
+  - `SourceScope`（user/project/temporary）、`SourceOrigin`（package/top-level）
+  - `SourceInfo`（path/source/scope/origin/baseDir）
+  - `createSourceInfo(path, source, scope, origin, baseDir)`
+  - `createSyntheticSourceInfo(path, source, scope=临时, origin=top-level)`
 
 ## 非目标
-- 完整命令执行链路（slash 模块已有，agent 循环消费）—— 调用方对接
-- TUI 重构
+- package-manager（PathMetadata 来源）—— 边界，SourceInfo 字段直接传参
+- 接入 skills/加载链路 —— 后续
 
 ## 验收
-- [ ] setCommands 生效
-- [ ] / 进入 palette 模式
-- [ ] palette 渲染 fuzzy 过滤列表
-- [ ] ↑/↓ 选择移动
-- [ ] Enter 确认选中
-- [ ] Esc 退出 palette
-- [ ] 现有单测全绿
+- [ ] readPiManifest 解析 pi 字段
+- [ ] 无 pi 字段返回 none
+- [ ] 非法 JSON 返回 none
+- [ ] 非字符串数组忽略
+- [ ] SourceInfo 默认值
+- [ ] synthetic 默认 scope/origin
+- [ ] 单测覆盖
