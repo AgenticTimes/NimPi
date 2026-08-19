@@ -25,6 +25,7 @@ import ../src/cachestats
 import ../src/configvalue
 import ../src/timings
 import ../src/exec
+import ../src/attribution
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -978,3 +979,36 @@ suite "exec":
     let r = execCommand("pwd", @[], "/tmp", ExecOptions(timeoutMs: 5000))
     # macOS /tmp 是 /private/tmp 符号链接，两者都可
     check r.stdout.strip() in ["/tmp", "/private/tmp"]
+
+suite "attribution":
+  test "matchesHost 判定":
+    check matchesHost("https://openrouter.ai/api", "openrouter.ai")
+    check not matchesHost("https://api.openai.com", "openrouter.ai")
+
+  test "openrouter 归属 + header":
+    check isOpenRouterModel("openrouter", "")
+    check isOpenRouterModel("", "https://openrouter.ai")
+    let h = getDefaultAttributionHeaders("openrouter", "", true)
+    check h.hasKey("HTTP-Referer")
+    check h["X-OpenRouter-Title"] == "pi"
+
+  test "nvidia/cloudflare 归属":
+    check isNvidiaNimModel("nvidia", "")
+    check isCloudflareModel("cloudflare-workers-ai", "")
+    let n = getDefaultAttributionHeaders("nvidia", "", true)
+    check n.hasKey("X-BILLING-INVOKE-ORIGIN")
+    let c = getDefaultAttributionHeaders("cloudflare-workers-ai", "", true)
+    check c["User-Agent"] == "pi-coding-agent"
+
+  test "opencode session header":
+    let h = getSessionHeaders("opencode", "", "sess-1")
+    check h["x-opencode-session"] == "sess-1"
+    check getSessionHeaders("openai", "", "sess-1").len == 0
+
+  test "未启用无归属 header":
+    check getDefaultAttributionHeaders("openrouter", "", false).len == 0
+
+  test "mergeProviderAttributionHeaders 合并":
+    let m = mergeProviderAttributionHeaders("opencode", "", "sess-9", true)
+    check m.hasKey("x-opencode-session")
+    check m["x-opencode-client"] == "pi"
