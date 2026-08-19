@@ -1,7 +1,7 @@
 ## 运行时凭据：对齐 pi `runtime-credentials.ts`。
 ## RuntimeCredentials：运行时 API key 覆盖层（非持久，覆盖 base store）。
 
-import std/[os, tables]
+import std/[tables]
 
 type
   ## base 凭据查找函数：给定 providerId 返回持久/环境凭据（可空）

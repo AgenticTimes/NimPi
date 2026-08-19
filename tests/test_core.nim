@@ -1889,3 +1889,32 @@ suite "authintegrate":
       if stored.len > 0: cfgApiKey = stored
     # auth.json 无记录 → 保持空（main 后续 env 逻辑）
     check cfgApiKey == ""
+
+suite "credintegrate":
+  test "RuntimeCredentials 组合：auth.json > env":
+    let store = newAuthStorage("/tmp/npi_ci2.json")
+    removeFile("/tmp/npi_ci2.json")
+    store.setCredential("openai", "stored-key")
+    var creds = newRuntimeCredentials(proc(pid: string): string =
+      let s = store.readStoredCredential(pid)
+      if s.len > 0: s else: "")
+    check creds.read("openai") == "stored-key"
+    removeFile("/tmp/npi_ci2.json")
+
+  test "运行时覆盖最高":
+    var creds = newRuntimeCredentials(proc(pid: string): string = "base-key")
+    creds.setRuntimeApiKey("openai", "override-key")
+    check creds.read("openai") == "override-key"
+
+  test "覆盖可移除回退 base":
+    var creds = newRuntimeCredentials(proc(pid: string): string = "base-key")
+    creds.setRuntimeApiKey("x", "override")
+    creds.removeRuntimeApiKey("x")
+    check creds.read("x") == "base-key"
+
+  test "env 兜底（模拟）":
+    putEnv("OPENAI_API_KEY", "env-key")
+    var creds = newRuntimeCredentials(proc(pid: string): string =
+      getEnv("OPENAI_API_KEY", ""))
+    check creds.read("openai") == "env-key"
+    delEnv("OPENAI_API_KEY")
