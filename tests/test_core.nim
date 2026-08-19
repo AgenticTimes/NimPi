@@ -24,6 +24,7 @@ import ../src/usagetotals
 import ../src/cachestats
 import ../src/configvalue
 import ../src/timings
+import ../src/exec
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -955,3 +956,25 @@ suite "timings":
     check "main" in r
     check "extensions" in r
     delEnv("NPI_TIMING")
+
+suite "exec":
+  test "stdout/stderr 分离":
+    let r = execCommand("echo out-msg; echo err-msg >&2", @[], ".", ExecOptions(timeoutMs: 5000))
+    check "out-msg" in r.stdout
+    check "err-msg" in r.stderr
+    check r.code == 0
+    check not r.killed
+
+  test "code 返回":
+    let r = execCommand("exit 3", @[], ".", ExecOptions(timeoutMs: 5000))
+    check r.code == 3
+
+  test "超时终止 + killed 标记":
+    let r = execCommand("sleep 5", @[], ".", ExecOptions(timeoutMs: 300))
+    check r.killed
+    check r.code == -1
+
+  test "cwd 生效":
+    let r = execCommand("pwd", @[], "/tmp", ExecOptions(timeoutMs: 5000))
+    # macOS /tmp 是 /private/tmp 符号链接，两者都可
+    check r.stdout.strip() in ["/tmp", "/private/tmp"]
