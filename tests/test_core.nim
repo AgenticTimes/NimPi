@@ -36,6 +36,7 @@ import ../src/trust
 import ../src/authstorage
 import ../src/modelconfig
 import ../src/fuzzy
+import ../src/tui
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -1975,3 +1976,72 @@ suite "fuzzy":
   test "fuzzyFilter 无匹配返回空":
     let items = @["apple", "banana"]
     check fuzzyFilter(items, "xyz", proc(x: string): string = x).len == 0
+
+suite "tui-palette":
+  test "setCommands + / 进入 palette":
+    var t = Tui(exitApp: false, cursor: 0, scrollOffset: 0, status: "",
+                commands: @[], paletteMode: false, paletteIndex: 0)
+    t.setCommands(@["/help", "/models", "/exit", "/compact"])
+    t.handleInput(TuiEvent(kind: evChar, ch: '/'))
+    check t.paletteMode
+    check t.input == "/"
+
+  test "paletteQuery 去 / 前缀":
+    var t = Tui(exitApp: false, cursor: 0, scrollOffset: 0, status: "",
+                commands: @[], paletteMode: false, paletteIndex: 0)
+    t.setCommands(@["/help"])
+    t.handleInput(TuiEvent(kind: evChar, ch: '/'))
+    t.handleInput(TuiEvent(kind: evChar, ch: 'h'))
+    check t.paletteQuery() == "h"
+    check t.paletteMatches().len >= 1
+
+  test "paletteMatches fuzzy 过滤":
+    var t = Tui(exitApp: false, cursor: 0, scrollOffset: 0, status: "",
+                commands: @[], paletteMode: false, paletteIndex: 0)
+    t.setCommands(@["/help", "/models", "/exit", "/compact"])
+    t.enterPalette()
+    t.input = "/mod"
+    t.cursor = 4
+    let m = t.paletteMatches()
+    check m.len == 1
+    check m[0] == "/models"
+
+  test "↑/↓ 选择移动":
+    var t = Tui(exitApp: false, cursor: 0, scrollOffset: 0, status: "",
+                commands: @[], paletteMode: false, paletteIndex: 0)
+    t.setCommands(@["/a", "/b", "/c"])
+    t.enterPalette()
+    t.handleInput(TuiEvent(kind: evDown))
+    check t.paletteIndex == 1
+    t.handleInput(TuiEvent(kind: evUp))
+    check t.paletteIndex == 0
+    # 边界：不再上移
+    t.handleInput(TuiEvent(kind: evUp))
+    check t.paletteIndex == 0
+
+  test "Enter 选中命令填回输入":
+    var t = Tui(exitApp: false, cursor: 0, scrollOffset: 0, status: "",
+                commands: @[], paletteMode: false, paletteIndex: 0)
+    t.setCommands(@["/help", "/models"])
+    t.enterPalette()
+    t.input = "/m"
+    t.cursor = 2
+    t.handleInput(TuiEvent(kind: evDown))
+    t.handleInput(TuiEvent(kind: evEnter))
+    check not t.paletteMode
+    check t.input == "/models"
+
+  test "Esc 退出 palette":
+    var t = Tui(exitApp: false, cursor: 0, scrollOffset: 0, status: "",
+                commands: @[], paletteMode: false, paletteIndex: 0)
+    t.setCommands(@["/help"])
+    t.enterPalette()
+    check t.paletteMode
+    t.handleInput(TuiEvent(kind: evQuit))
+    check not t.paletteMode
+
+  test "无命令时不进 palette":
+    var t = Tui(exitApp: false, cursor: 0, scrollOffset: 0, status: "",
+                commands: @[], paletteMode: false, paletteIndex: 0)
+    t.handleInput(TuiEvent(kind: evChar, ch: '/'))
+    check not t.paletteMode

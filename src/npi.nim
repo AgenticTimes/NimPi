@@ -1,7 +1,7 @@
 ## npi — 极简编码 agent（Nim）入口。
 ## `npi -p "..."` 打印模式 · `npi` 全屏 TUI（stdin 非 TTY 时退化为 REPL）· `-r` 恢复最近会话。
 
-import std/[os, strutils, asyncdispatch, json, terminal, tables, times, options]
+import std/[os, strutils, asyncdispatch, json, terminal, tables, times, options, algorithm]
 import ./types
 import ./llm
 import ./agent
@@ -234,9 +234,15 @@ proc runConversation*(driver: var AgentDriver, session: var Session,
 
 proc runTui*(driver: var AgentDriver, session: var Session, cwd: string): int =
   ## 全屏 TUI 交互循环。
-  var tui = initTui()
   # slash 命令分发上下文（只捕获 ref/基本类型避免 memory-safety）
   let commands = buildCommands()
+  var tui = initTui()
+  # 命令面板：喂入 slash 命令列表
+  var cmdNames: seq[string] = @[]
+  for k in commands.keys:
+    cmdNames.add "/" & k
+  cmdNames.sort
+  tui.setCommands(cmdNames)
   var sessionMsgCount = session.messages.len
   let clientRef = driver.client   # ref，可安全被闭包捕获
   let slashCtx = proc(name: string): string {.closure.} =
