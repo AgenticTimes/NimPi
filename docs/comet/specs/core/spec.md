@@ -1,22 +1,22 @@
-# NPI Timings — Specification
+# NPI Exec — Specification
 
 ## 目标
-为 npi 实现启动/阶段性能计时（对齐 pi timings.ts）：环境变量开关、分段间隔计时、分组输出。
+为 npi 实现 execCommand（对齐 pi exec.ts）：执行命令返回分离的 stdout/stderr/code/killed，支持 timeout。
 
 ## 范围
-- `src/timings.nim`：
-  - `TimingNamespace`：timings 列表 + lastTime
-  - `resetTimings(namespace)`、`time(label, namespace)` 间隔计时、`printTimings()`
-  - 开关：NPI_TIMING=1（对齐 pi PI_TIMING）
-  - 未启用时全部 no-op
-- 接入：main 里 reset/time 标记关键阶段（可选）
+- `src/exec.nim`：
+  - `ExecOptions`：timeout、cwd
+  - `ExecResult`：stdout、stderr、code、killed
+  - `execCommand(command, args, cwd, opts)`：startProcess + 收集 stdout/stderr（分离管道）+ 超时终止（SIGTERM→5s 后 SIGKILL）
+- 与 bashtimeout 区分：本模块返回分离流，bashtimeout 合并输出
 
 ## 非目标
-- 完整 profiling —— 简单间隔计时
+- AbortSignal —— 仅 timeout
+- 合并输出 —— bashtimeout 已有
 
 ## 验收
-- [ ] 未启用时 no-op
-- [ ] reset 初始化
-- [ ] time 记录间隔
-- [ ] print 分组输出
+- [ ] stdout/stderr 分离
+- [ ] code 返回
+- [ ] 超时终止 + killed 标记
+- [ ] SIGTERM 后 SIGKILL 升级
 - [ ] 单测覆盖
