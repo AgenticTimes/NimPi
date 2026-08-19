@@ -1,23 +1,20 @@
-# NPI ProviderConfig — Specification
+# NPI ConfigIntegrate2 — Specification
 
 ## 目标
-为 npi 补全模型配置的 provider 层（对齐 pi ProviderConfigSchema 核心字段）。
+把 modelconfig/authstorage 接入 llm 初始化（对齐 pi 的模型/provider 配置用途），消除 0-ref。
 
 ## 范围
-- `src/modelconfig.nim` 扩展：
-  - `ProviderDefinition`：name/baseUrl/apiKey/api/oauth/headers/authHeader/models
-  - `parseProviderDefinition(j)`：提取字段
-  - `loadModelsJson` 扩展：解析 providers 表
-  - `findProvider(config, id)`
-- 接入（可选）：llm 用 provider 配置的 baseUrl/apiKey
+- `llm.nim`：`newLlmClient` 可选接受 models.json 配置——provider 配置的 baseUrl/apiKey 优先（有则用）
+- `npi.nim` main：加载 models.json（NPI_MODELS 环境变量/默认），provider 配置的 contextWindow 传入 compaction
+- authstorage 供 CLI 凭据（可选，credentials 已覆盖）
 
 ## 非目标
-- compat/thinkingLevelMap —— 后续
-- modelOverrides —— 后续
+- 完整配置系统 —— provider 配置字段最小接入
+- credentials/diagnostics/exec 接入 —— 独立 API
 
 ## 验收
-- [ ] ProviderDefinition 字段解析
-- [ ] providers 表解析
-- [ ] findProvider
-- [ ] headers 解析
-- [ ] 单测覆盖
+- [ ] newLlmClient 用 provider 配置 baseUrl/apiKey
+- [ ] main 加载 models.json
+- [ ] contextWindow 到 compaction
+- [ ] 现有单测全绿
+- [ ] 集成单测
