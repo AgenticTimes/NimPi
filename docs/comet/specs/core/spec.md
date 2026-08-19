@@ -1,23 +1,18 @@
-# NPI Settings — Specification
+# NPI SettingsIntegrate — Specification
 
 ## 目标
-为 npi 实现设置结构（对齐 pi settings-manager.ts 的 Settings 接口 + 默认值 + deepMerge）。
+把 settings 模块接入 agent 实际路径，消除 0-ref 孤岛。
 
 ## 范围
-- `src/settings.nim`：
-  - `CompactionSettings`/`BranchSummarySettings`/`RetrySettings`/`TerminalSettings`/`MarkdownSettings`
-  - `Settings`：defaultProvider/defaultModel/compaction/retry/terminal/markdown/showCacheMissNotices 等核心字段
-  - `defaultSettings()`：默认值（compaction reserve 16384/keepRecent 20000、retry maxRetries 3/baseDelay 2000、terminal showImages true）
-  - `deepMergeSettings(base, overrides)`：递归合并（nested 对象）
-- 接入（可选）：agent 用 settings.compaction 替代硬编码
+- `agent.nim` newAgent：compactionSettings 用 settings.defaultSettings().compaction 初始化（映射 reserveTokens/keepRecentTokens/contextWindow）
+- npi.nim：agent 创建处不再重复设置 compaction（保留 NPI_CONTEXT_WINDOW 覆盖）
 
 ## 非目标
-- 全量 Settings（packages/extensions/themes 等）—— 核心子集
-- 文件读写/persistence —— 仅结构+合并
+- 完整 settings 加载 —— 用默认值
+- exec/diagnostics 接入 —— 独立 API
 
 ## 验收
-- [ ] 各 settings 结构字段
-- [ ] defaultSettings 默认值
-- [ ] deepMerge 递归合并
-- [ ] 覆盖优先级正确
-- [ ] 单测覆盖
+- [ ] newAgent compactionSettings 来自 settings
+- [ ] NPI_CONTEXT_WINDOW 仍可覆盖
+- [ ] 现有单测全绿
+- [ ] 集成单测
