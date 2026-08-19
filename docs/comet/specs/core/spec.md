@@ -1,24 +1,23 @@
-# NPI ModelConfig — Specification
+# NPI ProviderConfig — Specification
 
 ## 目标
-为 npi 实现模型配置解析（对齐 pi model-config.ts 的 ModelDefinitionSchema 核心字段）。
+为 npi 补全模型配置的 provider 层（对齐 pi ProviderConfigSchema 核心字段）。
 
 ## 范围
-- `src/modelconfig.nim`：
-  - `ModelCost`：input/output/cacheRead/cacheWrite
-  - `ModelDefinition`：id/name/api/baseUrl/reasoning/cost/contextWindow/maxTokens/headers
-  - `parseModelDefinition(j)`：从 JSON 提取字段（无 typebox 校验，缺省用默认）
-  - `loadModelsJson(path)`：读 models.json → seq[ModelDefinition]
-- 接入（可选）：modelresolver 用 contextWindow
+- `src/modelconfig.nim` 扩展：
+  - `ProviderDefinition`：name/baseUrl/apiKey/api/oauth/headers/authHeader/models
+  - `parseProviderDefinition(j)`：提取字段
+  - `loadModelsJson` 扩展：解析 providers 表
+  - `findProvider(config, id)`
+- 接入（可选）：llm 用 provider 配置的 baseUrl/apiKey
 
 ## 非目标
-- typebox schema 校验 —— 提取字段即可
-- provider 配置（ProviderConfigSchema）—— 仅模型定义
-- thinkingLevelMap/compat —— 后续
+- compat/thinkingLevelMap —— 后续
+- modelOverrides —— 后续
 
 ## 验收
-- [ ] ModelDefinition 字段解析
-- [ ] cost 嵌套解析
-- [ ] models.json 加载
-- [ ] 缺字段用默认
+- [ ] ProviderDefinition 字段解析
+- [ ] providers 表解析
+- [ ] findProvider
+- [ ] headers 解析
 - [ ] 单测覆盖
