@@ -1,23 +1,23 @@
-# NPI CredIntegrate — Specification
+# NPI Fuzzy — Specification
 
 ## 目标
-把 credentials 模块接入 CLI 凭据解析（对齐 pi 的 RuntimeCredentials 用法：运行时覆盖 + 持久 store）。
+把 pi fuzzy.ts 的模糊匹配逻辑完整移植到 Nim（fzf 风格：低分更优）。
 
 ## 范围
-- `npi.nim` main：凭据解析统一走 RuntimeCredentials
-  - baseLookup：auth.json（持久）+ env
-  - 覆盖：--api-key 显式（setRuntimeApiKey）
-  - read(provider) 返回最终 key
-- 简化现有 authintegrate 的分支逻辑
+- `src/fuzzy.nim`：
+  - `FuzzyMatch`（matches/score）
+  - `fuzzyMatch(query, text)`：小写、顺序子序列；连续奖励 -5/个、间隙惩罚 +2/char、词边界 -10、位置 +0.1*i、完全匹配 -100；字母数字交换变体
+  - `fuzzyFilter[T](items, query, getText)`：空白/slash token 化，全 token 匹配才保留，按总分升序
 
 ## 非目标
-- diagnostics/exec 接入 —— 独立 API
-- 凭据写入 CLI —— 后续
+- TUI 接入（选择器/命令面板）—— 后续 change
 
 ## 验收
-- [ ] RuntimeCredentials 组合解析
-- [ ] --api-key 覆盖最高
-- [ ] auth.json 次之
-- [ ] env 兜底
-- [ ] 现有单测全绿
-- [ ] 集成单测
+- [ ] 空 query 匹配 score 0
+- [ ] 顺序子序列匹配
+- [ ] 顺序错误不匹配
+- [ ] 完全匹配最低分
+- [ ] 字母数字交换变体
+- [ ] token 过滤（多 token 全匹配）
+- [ ] 排序（最优在前）
+- [ ] 单测覆盖
