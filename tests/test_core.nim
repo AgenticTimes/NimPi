@@ -37,6 +37,8 @@ import ../src/authstorage
 import ../src/modelconfig
 import ../src/fuzzy
 import ../src/tui
+import ../src/manifest
+import ../src/sourceinfo
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -2045,3 +2047,48 @@ suite "tui-palette":
                 commands: @[], paletteMode: false, paletteIndex: 0)
     t.handleInput(TuiEvent(kind: evChar, ch: '/'))
     check not t.paletteMode
+
+suite "manifest-info":
+  test "readPiManifest 解析 pi 字段":
+    writeFile("/tmp/npi_mi1.json", """{"name": "x", "pi": {"extensions": ["e1"], "skills": ["s1", "s2"], "prompts": [], "themes": ["t1"]}}""")
+    let m = readPiManifest("/tmp/npi_mi1.json")
+    check m.isSome
+    check m.get.extensions == @["e1"]
+    check m.get.skills == @["s1", "s2"]
+    check m.get.themes == @["t1"]
+    removeFile("/tmp/npi_mi1.json")
+
+  test "无 pi 字段返回 none":
+    writeFile("/tmp/npi_mi2.json", """{"name": "x"}""")
+    check readPiManifest("/tmp/npi_mi2.json").isNone
+    removeFile("/tmp/npi_mi2.json")
+
+  test "非法 JSON 返回 none":
+    writeFile("/tmp/npi_mi3.json", "{not json")
+    check readPiManifest("/tmp/npi_mi3.json").isNone
+    removeFile("/tmp/npi_mi3.json")
+
+  test "文件不存在返回 none":
+    check readPiManifest("/tmp/nonexistent_pkg.json").isNone
+
+  test "非字符串数组忽略":
+    writeFile("/tmp/npi_mi4.json", """{"pi": {"extensions": [1, 2], "skills": "notarray"}}""")
+    let m = readPiManifest("/tmp/npi_mi4.json")
+    check m.isSome
+    check m.get.extensions.len == 0
+    check m.get.skills.len == 0
+    removeFile("/tmp/npi_mi4.json")
+
+  test "createSourceInfo 完整字段":
+    let si = createSourceInfo("/a/b", "pkg", scopeProject, originPackage, "/a")
+    check si.path == "/a/b"
+    check si.source == "pkg"
+    check si.scope == scopeProject
+    check si.origin == originPackage
+    check si.baseDir == "/a"
+
+  test "createSyntheticSourceInfo 默认值":
+    let si = createSyntheticSourceInfo("/tmp/x", "cli")
+    check si.scope == scopeTemporary
+    check si.origin == originTopLevel
+    check si.baseDir == ""
