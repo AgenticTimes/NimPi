@@ -1,0 +1,241 @@
+schema: comet.native.v4
+name: npi-gitpaths
+language: zh-CN
+phase: archive
+status: done
+state_version: 8
+brief: brief.md
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/npi-gitpaths
+  target_branch: master
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 对齐 pi findGitPaths：从 cwd 向上查找 git 仓库根，支持普通 .git 目录与 worktree gitdir
+      文件（gitdir:/commondir 指针）。
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/gitpaths.nim`："
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`GitPaths`（repoDir/commonGitDir/headPath）"
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`findGitPaths(cwd): Option[GitPaths]`："
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: 向上遍历，找 .git（目录或文件）
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: ".git 文件 → `gitdir: <path>` 指针，HEAD 在 gitDir，解析 commondir（存在则指向 common）"
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: .git 目录 → HEAD 在其下
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: 无 HEAD → none
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: 到根仍无 → none
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] .git 目录场景（普通仓库）"
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] .git 文件场景（worktree gitdir 指针）"
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] commondir 解析"
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A13
+    source: specs/core/spec.md
+    text: "[ ] 无 HEAD 返回 none"
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A14
+    source: specs/core/spec.md
+    text: "[ ] 向上查找（子目录开始）"
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A15
+    source: specs/core/spec.md
+    text: "[ ] 无 .git 返回 none"
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+  - id: A16
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: findGitPaths 对齐（.git目录/gitdir指针/commondir/向上查找）
+      truncated: false
+builder_handoff:
+  candidate_id: 59f87d5f-3ef8-4d39-a2a5-e14722fcc6f2
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:dd6f893b-0520-4695-9e8d-9c5fdfbec860
+  iteration: 1
+  summary:
+    text: 对齐 pi footer-data-provider.ts 的 findGitPaths：向上查找 .git（目录或 gitdir
+      指针文件），worktree 场景解析 gitdir 指针 + commondir，返回
+      repoDir/commonGitDir/headPath。修复 Nim parentDir("/") 返回空串导致的根目录终止 bug。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 289 单测全绿（含 6 个 gitpaths 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: branch 解析（git symbolic-ref）待调用方/后续
+      truncated: false
+    - text: WSL/Windows 平台检测未对齐
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-19T23:24:21.005Z
+blockers: []
+verification:
+  candidate_id: 59f87d5f-3ef8-4d39-a2a5-e14722fcc6f2
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:8bc875a6-2a9b-41ef-a3e0-e013f8dae6bd
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-gp-ut
+      name:
+        text: NPI GitPaths 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_gp_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 4912
+  summary:
+    text: NPI GitPaths 验收全过：comet Runtime 实跑 289 单测 OK。
+    truncated: false
+  risks:
+    - text: branch 解析待后续
+      truncated: false
+    - text: WSL/Windows 平台检测未对齐
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-19T23:24:32.750Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI GitPaths 验收全过：comet Runtime 实跑 289 单测 OK。
+      truncated: false
+    completed_at: 2026-08-19T23:24:32.750Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-19T23:18:53.060Z

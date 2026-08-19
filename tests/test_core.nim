@@ -40,6 +40,7 @@ import ../src/tui
 import ../src/manifest
 import ../src/sourceinfo
 import ../src/authguidance
+import ../src/gitpaths
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -2118,3 +2119,59 @@ suite "authguidance":
   test "no api key unknown → the selected model":
     let m = formatNoApiKeyFoundMessage("unknown", "/docs")
     check m.startsWith("No API key found for the selected model.")
+
+suite "gitpaths":
+  test ".git 目录场景（普通仓库）":
+    createDir("/tmp/npi_gp/repo/.git")
+    writeFile("/tmp/npi_gp/repo/.git/HEAD", "ref: refs/heads/main\n")
+    let gp = findGitPaths("/tmp/npi_gp/repo")
+    check gp.isSome
+    check gp.get.repoDir == "/tmp/npi_gp/repo"
+    check gp.get.commonGitDir == "/tmp/npi_gp/repo/.git"
+    check gp.get.headPath == "/tmp/npi_gp/repo/.git/HEAD"
+    removeDir("/tmp/npi_gp")
+
+  test ".git 文件场景（worktree gitdir 指针 + commondir）":
+    createDir("/tmp/npi_gp2/.git")
+    writeFile("/tmp/npi_gp2/.git/HEAD", "ref: refs/heads/main\n")
+    createDir("/tmp/npi_gp2/.git/worktrees/wt")
+    createDir("/tmp/npi_gp2/wt")
+    writeFile("/tmp/npi_gp2/wt/.git", "gitdir: /tmp/npi_gp2/.git/worktrees/wt\n")
+    writeFile("/tmp/npi_gp2/.git/worktrees/wt/HEAD", "ref: refs/heads/wt-branch\n")
+    writeFile("/tmp/npi_gp2/.git/worktrees/wt/commondir", "/tmp/npi_gp2/.git\n")
+    let gp = findGitPaths("/tmp/npi_gp2/wt")
+    check gp.isSome
+    check gp.get.repoDir == "/tmp/npi_gp2/wt"
+    check gp.get.commonGitDir == "/tmp/npi_gp2/.git"
+    check gp.get.headPath == "/tmp/npi_gp2/.git/worktrees/wt/HEAD"
+    removeDir("/tmp/npi_gp2")
+
+  test ".git 文件无 commondir → commonGitDir = gitDir":
+    createDir("/tmp/npi_gp3/wt/.gitwt/wt")
+    createDir("/tmp/npi_gp3/wt")
+    writeFile("/tmp/npi_gp3/wt/.git", "gitdir: /tmp/npi_gp3/wt/.gitwt/wt\n")
+    writeFile("/tmp/npi_gp3/wt/.gitwt/wt/HEAD", "ref: refs/heads/main\n")
+    let gp = findGitPaths("/tmp/npi_gp3/wt")
+    check gp.isSome
+    check gp.get.commonGitDir == "/tmp/npi_gp3/wt/.gitwt/wt"
+    removeDir("/tmp/npi_gp3")
+
+  test "无 HEAD 返回 none":
+    createDir("/tmp/npi_gp4/repo/.git")
+    let gp = findGitPaths("/tmp/npi_gp4/repo")
+    check gp.isNone
+    removeDir("/tmp/npi_gp4")
+
+  test "向上查找（子目录）":
+    createDir("/tmp/npi_gp5/repo/.git")
+    createDir("/tmp/npi_gp5/repo/sub/deep")
+    writeFile("/tmp/npi_gp5/repo/.git/HEAD", "ref: refs/heads/main\n")
+    let gp = findGitPaths("/tmp/npi_gp5/repo/sub/deep")
+    check gp.isSome
+    check gp.get.repoDir == "/tmp/npi_gp5/repo"
+    removeDir("/tmp/npi_gp5")
+
+  test "无 .git 返回 none":
+    createDir("/tmp/npi_gp6/nogit")
+    check findGitPaths("/tmp/npi_gp6/nogit").isNone
+    removeDir("/tmp/npi_gp6")
