@@ -1,6 +1,6 @@
 ## 单元测试：wire 序列化与 agent 工具分发。
 
-import std/[unittest, json, os, strutils, sequtils, algorithm, osproc]
+import std/[unittest, json, os, strutils, sequtils, algorithm, osproc, times]
 import ../src/types
 import ../src/agent
 import ../src/llm
@@ -856,3 +856,27 @@ suite "cachestats":
     waste.addMiss(detectMiss(prev, Usage(input: 4000, cacheRead: 1000), 100))
     check waste.missCount == 2
     check waste.missedTokens == 8000
+
+suite "usageintegrate":
+  test "Agent 默认 usage 字段":
+    var agent = newAgent(nil, ".")
+    check agent.usageTotals.input == 0
+    check agent.cacheWaste.missCount == 0
+
+  test "addUsageToTotals 经 agent 累计":
+    var agent = newAgent(nil, ".")
+    agent.usageTotals.addUsageToTotals(Usage(input: 10, output: 5))
+    agent.usageTotals.addUsageToTotals(Usage(input: 10, output: 5))
+    check agent.usageTotals.input == 20
+    check agent.usageTotals.output == 10
+    check agent.usageTotals.totalTokens() == 30
+
+  test "cache miss 检测经 agent":
+    var agent = newAgent(nil, ".")
+    # 模拟首轮后第二次未命中
+    let nowMs = epochTime().int * 1000
+    agent.lastRequest = PreviousRequest(promptTokens: 5000, timestamp: nowMs - 60000, reportedCache: true)
+    let miss = detectMiss(agent.lastRequest, Usage(input: 4000, cacheRead: 1000), nowMs)
+    agent.cacheWaste.addMiss(miss)
+    check agent.cacheWaste.missCount == 1
+    check agent.cacheWaste.missedTokens == 4000

@@ -1,7 +1,7 @@
 ## Token 用量统计：对齐 pi `usage-totals.ts`。
 ## UsageTotals 累计、addUsageToTotals、getUsageCostBreakdown（按 provider/model 成本分解）。
 
-import std/[tables, algorithm, strutils]
+import std/[tables, algorithm]
 import ./types
 
 type

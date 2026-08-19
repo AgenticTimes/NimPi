@@ -1,7 +1,7 @@
 ## npi — 极简编码 agent（Nim）入口。
 ## `npi -p "..."` 打印模式 · `npi` 全屏 TUI（stdin 非 TTY 时退化为 REPL）· `-r` 恢复最近会话。
 
-import std/[os, strutils, asyncdispatch, json, terminal, tables]
+import std/[os, strutils, asyncdispatch, json, terminal, tables, times]
 import ./types
 import ./llm
 import ./agent
@@ -14,6 +14,8 @@ import ./templates
 import ./modelresolver
 import ./messages
 import ./eventbus
+import ./usagetotals
+import ./cachestats
 
 type
   CliArgs = object
@@ -122,7 +124,7 @@ proc historyToChat(history: seq[Message]): seq[ChatMessage] =
   ## 委托给 messages.convertToLlm（对齐 pi convertToLlm）。
   result = convertToLlm(history)
 
-proc runConversation*(driver: AgentDriver, session: var Session,
+proc runConversation*(driver: var AgentDriver, session: var Session,
                       userInput: string,
                       onDelta: proc(d: string): void {.closure.},
                       onTool: proc(name: string): void {.closure.}): seq[Message] =
@@ -179,6 +181,18 @@ proc runConversation*(driver: AgentDriver, session: var Session,
         anyTool = true
       of seEnd:
         stop = p.stopReason
+        # 累计 token 用量（对齐 pi usage-totals 接入）
+        if p.usage.totalTokens > 0 or p.usage.input > 0:
+          driver.agent.usageTotals.addUsageToTotals(p.usage)
+          # 缓存缺失检测（对齐 pi cache-stats 接入）
+          let nowMs = epochTime().int * 1000
+          let miss = detectMiss(driver.agent.lastRequest, p.usage, nowMs)
+          driver.agent.cacheWaste.addMiss(miss)
+          driver.agent.lastRequest = PreviousRequest(
+            promptTokens: p.usage.promptTokensOf(),
+            modelKey: driver.client.opts.model,
+            timestamp: nowMs,
+            reportedCache: p.usage.cacheRead + p.usage.cacheWrite > 0)
 
     let asstMsg = Message(kind: mkAssistant, assistantContent: content, stopReason: stop)
     session.append(asstMsg)
@@ -208,15 +222,16 @@ proc runConversation*(driver: AgentDriver, session: var Session,
 
   return history
 
-proc runTui*(driver: AgentDriver, session: var Session, cwd: string): int =
+proc runTui*(driver: var AgentDriver, session: var Session, cwd: string): int =
   ## 全屏 TUI 交互循环。
   var tui = initTui()
   # slash 命令分发上下文（只捕获 ref/基本类型避免 memory-safety）
   let commands = buildCommands()
   var sessionMsgCount = session.messages.len
+  let clientRef = driver.client   # ref，可安全被闭包捕获
   let slashCtx = proc(name: string): string {.closure.} =
     case name.split(' ')[0]
-    of "model": return "当前模型: " & driver.client.opts.model & " (" & driver.client.opts.provider & ")"
+    of "model": return "当前模型: " & clientRef.opts.model & " (" & clientRef.opts.provider & ")"
     of "compact": return "会话已压缩（当前 MVP 自动按 context window 压缩）"
     of "new": return "可用 --no-session 开启新会话"
     of "resume": return "可用 npi -r 恢复最近会话"
@@ -289,13 +304,14 @@ proc runTui*(driver: AgentDriver, session: var Session, cwd: string): int =
   tui.deinit()
   return 0
 
-proc runRepl*(driver: AgentDriver, session: var Session, cwd: string): int =
+proc runRepl*(driver: var AgentDriver, session: var Session, cwd: string): int =
   ## 简易 REPL（stdin 非 TTY 时用）。
   let commands = buildCommands()
   var sessionMsgCount = session.messages.len
+  let clientRef = driver.client
   let slashCtx = proc(name: string): string {.closure.} =
     case name.split(' ')[0]
-    of "model": return "当前模型: " & driver.client.opts.model
+    of "model": return "当前模型: " & clientRef.opts.model
     of "compact": return "会话已压缩"
     of "new": return "可用 --no-session 开启新会话"
     of "resume": return "可用 npi -r 恢复最近会话"
@@ -374,7 +390,7 @@ proc main() =
     provider: effectiveProvider,
     apiKey: args.apiKey, baseUrl: args.baseUrl,
     model: effectiveModel, timeoutMs: 300000))
-  let driver = AgentDriver(client: client, agent: agent)
+  var driver = AgentDriver(client: client, agent: agent)
 
   # 会话
   var session = Session()
