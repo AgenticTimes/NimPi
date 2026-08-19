@@ -1,0 +1,221 @@
+schema: comet.native.v4
+name: npi-credentials
+language: zh-CN
+phase: archive
+status: done
+state_version: 8
+brief: brief.md
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/npi-credentials
+  target_branch: master
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 实现运行时 API key 覆盖（对齐 pi runtime-credentials.ts）：非持久凭据覆盖。
+    result: passed
+    reason:
+      text: 运行时凭据覆盖层对齐 pi runtime-credentials.ts
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/credentials.nim`："
+    result: passed
+    reason:
+      text: src/credentials.nim：RuntimeCredentials
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`RuntimeCredentials`：overrides Table（providerId → apiKey）"
+    result: passed
+    reason:
+      text: setRuntimeApiKey 覆盖
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`setRuntimeApiKey(providerId, key)` / `removeRuntimeApiKey` /
+      `hasRuntimeApiKey`"
+    result: passed
+    reason:
+      text: read 覆盖优先
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`read(providerId)`：覆盖优先，否则回退 base（env 查找）"
+    result: passed
+    reason:
+      text: read 回退 base
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: "`list()`：列出覆盖 + base"
+    result: passed
+    reason:
+      text: removeRuntimeApiKey
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: 接入（可选）：CLI --api-key 用 setRuntimeApiKey 存覆盖
+    result: passed
+    reason:
+      text: hasRuntimeApiKey
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] setRuntimeApiKey 覆盖"
+    result: passed
+    reason:
+      text: list 合并
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] read 覆盖优先"
+    result: passed
+    reason:
+      text: 覆盖（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] read 回退 base"
+    result: passed
+    reason:
+      text: 回退 base（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] remove/has"
+    result: passed
+    reason:
+      text: remove/has（单测）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] list 合并"
+    result: passed
+    reason:
+      text: list（单测）
+      truncated: false
+  - id: A13
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 164 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 9984c26c-fe76-430f-aeee-b591b77ac4ba
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:9b7a1864-10eb-40cd-906e-3a7e52179f47
+  iteration: 1
+  summary:
+    text: 实现运行时凭据覆盖层对齐 pi runtime-credentials.ts：RuntimeCredentials(overrides Table
+      + baseLookup
+      闭包)、setRuntimeApiKey/removeRuntimeApiKey/hasRuntimeApiKey/read(覆盖优先回退
+      base)/list。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 164 单测全绿（含 4 个 credentials 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 持久凭据存储待后续
+      truncated: false
+    - text: 完整 CredentialStore 接口待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-19T00:46:53.845Z
+blockers: []
+verification:
+  candidate_id: 9984c26c-fe76-430f-aeee-b591b77ac4ba
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:0a268b03-26e4-4234-960d-68b0f5ec485f
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-cr-ut
+      name:
+        text: NPI Credentials 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_cr_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 2698
+  summary:
+    text: NPI Credentials 验收全过：comet Runtime 实跑 164 单测 OK。
+    truncated: false
+  risks:
+    - text: 持久凭据存储待后续
+      truncated: false
+    - text: 完整 CredentialStore 接口待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-19T00:47:06.199Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Credentials 验收全过：comet Runtime 实跑 164 单测 OK。
+      truncated: false
+    completed_at: 2026-08-19T00:47:06.199Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-19T00:46:03.859Z
