@@ -19,6 +19,7 @@ import ./cachestats
 import ./configvalue
 import ./timings
 import ./modelconfig
+import ./authstorage
 import ./trust
 import ./systemprompt
 
@@ -30,6 +31,7 @@ type
     model*: string
     baseUrl*: string
     apiKey*: string
+    explicitApiKey*: bool
     sessionDir*: string
     resume*: bool
     noSession*: bool
@@ -77,7 +79,9 @@ proc parseArgs(argv: seq[string]): CliArgs =
     of "--base-url":
       inc i; if i < argv.len: result.baseUrl = argv[i]
     of "--api-key":
-      inc i; if i < argv.len: result.apiKey = argv[i]
+      inc i; if i < argv.len:
+        result.apiKey = argv[i]
+        result.explicitApiKey = true
     of "-h", "--help":
       stdout.write("""npi — 极简编码 agent（Nim）
 
@@ -429,9 +433,15 @@ proc main() =
     if effectiveModel.len == 0:
       effectiveModel = defaultModelForProvider(effectiveProvider)
 
+  # auth.json 持久凭据优先于 env（未显式 --api-key 时），对齐 pi 凭据层级
+  var cfgApiKey = args.apiKey
+  if not args.explicitApiKey and cfgApiKey.len == 0:
+    let authStore = newAuthStorage()
+    let stored = authStore.readStoredCredential(effectiveProvider)
+    if stored.len > 0:
+      cfgApiKey = stored
   # 加载 models.json（NPI_MODELS 指定路径），provider 配置的 baseUrl/apiKey 优先
   var cfgBaseUrl = args.baseUrl
-  var cfgApiKey = args.apiKey
   let modelsPath = getEnv("NPI_MODELS", "")
   if modelsPath.len > 0:
     let cfg = loadModelsJson(modelsPath)

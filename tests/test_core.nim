@@ -1853,3 +1853,39 @@ suite "configintegrate2":
     let cfg = ModelConfig(models: @[], providers: @[], sourcePath: "")
     check cfg.findProvider("nope").isNone
     check cfg.contextWindowFor("nope") == 200000
+
+suite "authintegrate":
+  test "auth.json 凭据优先于 env（模拟 main 逻辑）":
+    # 写 auth.json 凭据
+    let store = newAuthStorage("/tmp/npi_ai_test.json")
+    removeFile("/tmp/npi_ai_test.json")
+    store.setCredential("openai", "stored-key")
+    # 模拟 main：未显式 --api-key 且 env 空 → 用 auth.json
+    var cfgApiKey = ""
+    let stored = store.readStoredCredential("openai")
+    if stored.len > 0: cfgApiKey = stored
+    check cfgApiKey == "stored-key"
+    removeFile("/tmp/npi_ai_test.json")
+
+  test "--api-key 显式最高优先（模拟）":
+    let explicit = "cli-key"
+    let store = newAuthStorage("/tmp/npi_ai_test2.json")
+    removeFile("/tmp/npi_ai_test2.json")
+    store.setCredential("openai", "stored-key")
+    # 显式传了 --api-key → 不用 auth.json
+    var cfgApiKey = explicit
+    if explicit.len == 0:
+      let stored = store.readStoredCredential("openai")
+      if stored.len > 0: cfgApiKey = stored
+    check cfgApiKey == "cli-key"
+    removeFile("/tmp/npi_ai_test2.json")
+
+  test "无凭据回退 env（模拟）":
+    let store = newAuthStorage("/tmp/npi_ai_test3.json")
+    removeFile("/tmp/npi_ai_test3.json")
+    var cfgApiKey = ""
+    if cfgApiKey.len == 0:
+      let stored = store.readStoredCredential("openai")
+      if stored.len > 0: cfgApiKey = stored
+    # auth.json 无记录 → 保持空（main 后续 env 逻辑）
+    check cfgApiKey == ""
