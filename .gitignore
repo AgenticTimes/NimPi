@@ -6,3 +6,4 @@ npi
 .comet/current-change.json
 .worktrees/
 docs/comet/changes/*/runtime/
+test_core
