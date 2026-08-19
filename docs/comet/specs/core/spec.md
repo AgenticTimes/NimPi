@@ -1,20 +1,22 @@
-# NPI ConfigIntegrate2 — Specification
+# NPI AuthIntegrate — Specification
 
 ## 目标
-把 modelconfig/authstorage 接入 llm 初始化（对齐 pi 的模型/provider 配置用途），消除 0-ref。
+把 authstorage 接入 CLI apiKey 解析（对齐 pi 凭据层级：运行时覆盖 > auth.json > env）。
 
 ## 范围
-- `llm.nim`：`newLlmClient` 可选接受 models.json 配置——provider 配置的 baseUrl/apiKey 优先（有则用）
-- `npi.nim` main：加载 models.json（NPI_MODELS 环境变量/默认），provider 配置的 contextWindow 传入 compaction
-- authstorage 供 CLI 凭据（可选，credentials 已覆盖）
+- `npi.nim` parseArgs/main：apiKey 解析顺序
+  1. `--api-key`（运行时覆盖，最高）
+  2. auth.json 持久凭据（NPI_AGENT_DIR/auth.json）
+  3. env（OPENAI_API_KEY 等）
+- 用 RuntimeCredentials 组合（credentials 模块已实现覆盖层）
 
 ## 非目标
-- 完整配置系统 —— provider 配置字段最小接入
+- 凭据写入 CLI（/auth 命令）—— 后续
 - credentials/diagnostics/exec 接入 —— 独立 API
 
 ## 验收
-- [ ] newLlmClient 用 provider 配置 baseUrl/apiKey
-- [ ] main 加载 models.json
-- [ ] contextWindow 到 compaction
+- [ ] auth.json 凭据优先于 env
+- [ ] --api-key 最高优先
+- [ ] 无凭据回退 env
 - [ ] 现有单测全绿
 - [ ] 集成单测
