@@ -1,0 +1,319 @@
+schema: comet.native.v4
+name: npi-output-accumulator
+language: zh-CN
+phase: build
+status: active
+state_version: 6
+brief: brief.md
+spec_changes:
+  - capability: output-accumulator
+    operation: create
+    source: specs/output-accumulator/spec.md
+workspace:
+  isolation: branch
+  change_branch: comet/npi-output-accumulator
+  target_branch: master
+  finish: null
+loop:
+  stage: repairing
+  goal_cycle: 1
+  iteration: 2
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: submit-builder-candidate
+acceptance:
+  - id: A1
+    source: brief.md
+    text: 追加 3 个 chunk（"ab"、"c"、"def"）→ finish → snapshot.content ==
+      "abcdef"，totalLines == 0，truncated == false
+    result: pending
+    reason: null
+  - id: A2
+    source: brief.md
+    text: 追加 1 行超过 maxBytes 的内容 → snapshot.truncated == true，truncatedBy == "bytes"
+    result: pending
+    reason: null
+  - id: A3
+    source: brief.md
+    text: 追加 5 行但 maxLines=2 → snapshot.content 只含最后 2 行，truncatedBy == "lines"
+    result: pending
+    reason: null
+  - id: A4
+    source: brief.md
+    text: 追加含多字节字符（如中文/emoji）且字符恰被拆在两个 chunk 边界 → 解码后内容正确
+    result: pending
+    reason: null
+  - id: A5
+    source: brief.md
+    text: 超限 + persistIfTruncated=true → fullOutputPath 存在且包含完整输出
+    result: pending
+    reason: null
+  - id: A6
+    source: brief.md
+    text: 追加到已 finish 的 accumulator → 抛错
+    result: pending
+    reason: null
+  - id: A7
+    source: specs/output-accumulator/spec.md
+    text: 对齐 pi-coding-agent 的 `core/tools/output-accumulator.ts`。归档后
+      `src/outputaccumulator.nim` 的完整行为如下。
+    result: pending
+    reason: null
+  - id: A8
+    source: specs/output-accumulator/spec.md
+    text: "`newOutputAccumulator*(options: OutputAccumulatorOptions = default):
+      OutputAccumulator`，options 含
+      maxLines/maxBytes/tempFilePrefix，缺省用常量。maxRollingBytes = max(2*maxBytes,
+      1)。"
+    result: pending
+    reason: null
+  - id: A9
+    source: specs/output-accumulator/spec.md
+    text: 输入：UTF-8 字节串 chunk（流式，可跨调用切分多字节字符）。行为：
+    result: pending
+    reason: null
+  - id: A10
+    source: specs/output-accumulator/spec.md
+    text: finished 时抛错 `Cannot append to a finished output accumulator`。
+    result: pending
+    reason: null
+  - id: A11
+    source: specs/output-accumulator/spec.md
+    text: totalRawBytes += chunk.len。
+    result: pending
+    reason: null
+  - id: A12
+    source: specs/output-accumulator/spec.md
+    text: 拼接 pendingBytes + chunk 后，判定末尾是否含未完成 UTF-8 序列（多字节字符的续字节 0x80-0xBF
+      不足）；是则把未完成字节存入 pendingBytes，其余字节解码为文本处理；否则全部解码。
+    result: pending
+    reason: null
+  - id: A13
+    source: specs/output-accumulator/spec.md
+    text: 解码文本进入行统计：统计 '\n' 数量；无换行则 currentLineBytes += 字节数、hasOpenLine=true；有换行则
+      completedLines += 换行数，最后一段（最后一个 '\n' 之后）成为当前行。
+    result: pending
+    reason: null
+  - id: A14
+    source: specs/output-accumulator/spec.md
+    text: "totalLines = completedLines + (hasOpenLine ? 1 : 0)。"
+    result: pending
+    reason: null
+  - id: A15
+    source: specs/output-accumulator/spec.md
+    text: tailText 追加解码文本；tailBytes 超 2*maxRollingBytes 时裁剪（见 trimTail）。
+    result: pending
+    reason: null
+  - id: A16
+    source: specs/output-accumulator/spec.md
+    text: 临时文件已创建或 shouldUseTempFile() 为真 → 原始 chunk 写入临时文件；否则追加进 rawChunks。
+    result: pending
+    reason: null
+  - id: A17
+    source: specs/output-accumulator/spec.md
+    text: finished 置 true；将 pendingBytes 作为完整文本解码处理（此时是完整字符，直接计入）；若
+      shouldUseTempFile() 则创建临时文件。幂等：重复调用直接返回。
+    result: pending
+    reason: null
+  - id: A18
+    source: specs/output-accumulator/spec.md
+    text: 输入：可选 persistIfTruncated。行为：
+    result: pending
+    reason: null
+  - id: A19
+    source: specs/output-accumulator/spec.md
+    text: 取快照文本：tailStartsAtLineBoundary 为真 → tailText 全量；否则从第一个 '\n' 之后开始（跳过被裁剪的半行）。
+    result: pending
+    reason: null
+  - id: A20
+    source: specs/output-accumulator/spec.md
+    text: 调 truncateTail(snapshotText, {maxLines, maxBytes})。
+    result: pending
+    reason: null
+  - id: A21
+    source: specs/output-accumulator/spec.md
+    text: 'truncated = totalLines > maxLines 或 totalDecodedBytes >
+      maxBytes；truncatedBy = tailTruncation.truncatedBy ?? (totalDecodedBytes >
+      maxBytes ? "bytes" : "lines")。'
+    result: pending
+    reason: null
+  - id: A22
+    source: specs/output-accumulator/spec.md
+    text: 组装
+      TruncationResult：content/truncated/truncatedBy/totalLines/totalBytes/maxLines/maxBytes
+      从截断结果与自身统计合成（outputLines/outputBytes/lastLinePartial/firstLineExceedsLimit
+      由 truncateTail 给出）。
+    result: pending
+    reason: null
+  - id: A23
+    source: specs/output-accumulator/spec.md
+    text: persistIfTruncated && truncated → 创建临时文件。
+    result: pending
+    reason: null
+  - id: A24
+    source: specs/output-accumulator/spec.md
+    text: 返回 {content, truncation, fullOutputPath}。
+    result: pending
+    reason: null
+  - id: A25
+    source: specs/output-accumulator/spec.md
+    text: 返回 currentLineBytes。
+    result: pending
+    reason: null
+  - id: A26
+    source: specs/output-accumulator/spec.md
+    text: 若临时文件已创建，关闭写入流（Nim 同步文件写入完成后调用，确保 flush）；未创建则直接返回。幂等。
+    result: pending
+    reason: null
+  - id: A27
+    source: specs/output-accumulator/spec.md
+    text: tailText 超 maxRollingBytes 时：保留末尾 maxRollingBytes 字节；若起点字节是 UTF-8
+      续字节（0x80-0xBF 掩码），后移到字符起始；tailStartsAtLineBoundary 更新为（起点前一个字节是 '\n' 或起点为
+      0）；更新 tailText/tailBytes。
+    result: pending
+    reason: null
+  - id: A28
+    source: specs/output-accumulator/spec.md
+    text: "`totalRawBytes > maxBytes 或 totalDecodedBytes > maxBytes 或 totalLines >
+      maxLines`。"
+    result: pending
+    reason: null
+  - id: A29
+    source: specs/output-accumulator/spec.md
+    text: 临时文件路径 = `getTempDir() / (tempFilePrefix & "-" & randomHex(8) &
+      ".log")`；创建后把 rawChunks 全部写入（对齐 pi 把已收集 chunk 灌入 WriteStream），清空
+      rawChunks。幂等：已有路径则跳过。
+    result: pending
+    reason: null
+  - id: A30
+    source: specs/output-accumulator/spec.md
+    text: '`of "bash"` 分支：execBashWithTimeout 得到 br 后，sanitizeShellOutput 清洗，然后：'
+    result: pending
+    reason: null
+  - id: A31
+    source: specs/output-accumulator/spec.md
+    text: 短输出（未超限）行为与现状一致：无 `[full output]` 后缀，无临时文件残留。
+    result: pending
+    reason: null
+  - id: A32
+    source: specs/output-accumulator/spec.md
+    text: append 多 chunk 拼接：("ab","c","def") → finish →
+      content=="abcdef"，truncated==false
+    result: pending
+    reason: null
+  - id: A33
+    source: specs/output-accumulator/spec.md
+    text: UTF-8 跨边界：多字节字符（如 "中" 3 字节）拆成 1+2 字节两个 chunk → finish 后解码正确
+    result: pending
+    reason: null
+  - id: A34
+    source: specs/output-accumulator/spec.md
+    text: 行统计：3 行输入 → totalLines==3；末尾无换行 → hasOpenLine 语义正确
+    result: pending
+    reason: null
+  - id: A35
+    source: specs/output-accumulator/spec.md
+    text: 字节超限：maxBytes=10 输出 20 字节 → snapshot.truncated、truncatedBy=="bytes"
+    result: pending
+    reason: null
+  - id: A36
+    source: specs/output-accumulator/spec.md
+    text: 行超限：maxLines=2 输出 5 行 → content 仅最后 2 行，truncatedBy=="lines"
+    result: pending
+    reason: null
+  - id: A37
+    source: specs/output-accumulator/spec.md
+    text: 未超限：无临时文件（fullOutputPath 空）
+    result: pending
+    reason: null
+  - id: A38
+    source: specs/output-accumulator/spec.md
+    text: 超限 + persistIfTruncated：fullOutputPath 非空，文件存在且包含完整输出；closeTempFile 后可读
+    result: pending
+    reason: null
+  - id: A39
+    source: specs/output-accumulator/spec.md
+    text: finished 后 append → 抛错
+    result: pending
+    reason: null
+  - id: A40
+    source: specs/output-accumulator/spec.md
+    text: getLastLineBytes：无换行输入返回累计字节
+    result: pending
+    reason: null
+  - id: A41
+    source: specs/output-accumulator/spec.md
+    text: trimTail 边界：tail 裁剪不切分多字节字符（裁剪后内容可正确解码）
+    result: pending
+    reason: null
+  - id: A42
+    source: specs/output-accumulator/spec.md
+    text: 随机前缀唯一：两次实例 temp 路径不同
+    result: pending
+    reason: null
+  - id: A43
+    source: specs/output-accumulator/spec.md
+    text: Node Buffer/WriteStream 异步流语义
+    result: pending
+    reason: null
+  - id: A44
+    source: specs/output-accumulator/spec.md
+    text: TextDecoder 完整解码器（BOM、invalid 序列替换字符等）
+    result: pending
+    reason: null
+  - id: A45
+    source: specs/output-accumulator/spec.md
+    text: 非 bash 工具接入
+    result: pending
+    reason: null
+  - id: A46
+    source: specs/output-accumulator/spec.md
+    text: 改变既有 bash tail 截断显示
+    result: pending
+    reason: null
+builder_handoff: null
+blockers: []
+verification: null
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: execution-error
+    unresolved_ids: []
+    summary:
+      text: "Native Verifier response was invalid: Native Verifier acceptance coverage
+        is invalid (duplicate: none; unknown: none; missing: A2, A3, A4, A5, A6,
+        A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21,
+        A22, A23, A24, A25, A26, A27, A28, A29, A30, A31, A32, A33, A34, A35,
+        A36, A37, A38, A39, A40, A41, A42, A43, A44, A45, A46)"
+      truncated: false
+    completed_at: 2026-08-19T02:31:53.003Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Verifier 判定 45/46 通过，唯一失败 A1 系验收文本缺陷：'abcdef' 无换行时 hasOpenLine=true →
+        totalLines=1（pi 语义同此），A1 写 totalLines==0 与 spec A14 矛盾。返回 Build 修正 A1
+        验收文本后重提候选。
+      truncated: false
+    completed_at: 2026-08-19T02:32:05.035Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pending
+verification_report: null
+archived: false
+created_at: 2026-08-19T02:24:11.354Z
