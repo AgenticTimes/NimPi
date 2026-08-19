@@ -30,6 +30,7 @@ import ../src/diagnostics
 import ../src/settings
 import ../src/credentials
 import ../src/outputaccumulator
+import ../src/systemprompt
 import ../src/trust
 
 suite "types wire":
@@ -1497,3 +1498,112 @@ suite "trust":
     check not resolveProjectTrusted(ResolveTrustOptions(
       cwd: "/tmp/npi_trust_test", trustStore: store,
       defaultTrust: "ask", uiSelect: ui))
+
+suite "systemprompt":
+  test "默认分支：工具列表与 guidelines":
+    var snippets = defaultToolSnippets()
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      cwd: "/tmp/proj",
+      selectedTools: @["read", "write", "edit", "bash", "ls", "grep", "find"],
+      toolSnippets: snippets))
+    check "Available tools:" in sp
+    check "- read: read a file" in sp
+    check "- bash: run a shell command" in sp
+    check "Be concise in your responses" in sp
+    check "Show file paths clearly when working with files" in sp
+    check "Current working directory: /tmp/proj" in sp
+
+  test "无可见工具 → (none)":
+    var snippets = initTable[string, string]()
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      cwd: "/tmp", selectedTools: @["read"], toolSnippets: snippets))
+    check "Available tools:\n(none)" in sp
+
+  test "仅 bash 无 grep/find/ls → 引导句":
+    var snippets = defaultToolSnippets()
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      cwd: "/tmp", selectedTools: @["bash"], toolSnippets: snippets))
+    check "Use bash for file operations like ls, rg, find" in sp
+
+  test "有 grep → 无 bash 引导句":
+    var snippets = defaultToolSnippets()
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      cwd: "/tmp", selectedTools: @["bash", "grep"], toolSnippets: snippets))
+    check "Use bash for file operations" notin sp
+
+  test "promptGuidelines 去重与空白跳过":
+    var snippets = defaultToolSnippets()
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      cwd: "/tmp", selectedTools: @["read"], toolSnippets: snippets,
+      promptGuidelines: @["custom rule", "custom rule", "   ", "another rule"]))
+    check "- custom rule" in sp
+    check "- another rule" in sp
+    check sp.count("custom rule") == 1
+
+  test "customPrompt 分支：正文/append/context/skills/cwd":
+    var snippets = defaultToolSnippets()
+    let skills = @[Skill(name: "testskill", description: "test desc", filePath: "", baseDir: "", disableModelInvocation: false)]
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      customPrompt: "custom body",
+      cwd: "/tmp/proj",
+      selectedTools: @["read"],
+      toolSnippets: snippets,
+      appendSystemPrompt: "append text",
+      contextFiles: @[ContextFile(path: "AGENTS.md", content: "repo rules")],
+      skills: skills))
+    check sp.startsWith("custom body")
+    check "append text" in sp
+    check "<project_context>" in sp
+    check "<project_instructions path=\"AGENTS.md\">" in sp
+    check "repo rules" in sp
+    check "<skill name=\"testskill\">" in sp
+    check "Current working directory: /tmp/proj" in sp
+
+  test "customPrompt 无 read 工具 → 不含 skills":
+    var snippets = defaultToolSnippets()
+    let skills = @[Skill(name: "s", description: "d", filePath: "", baseDir: "", disableModelInvocation: false)]
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      customPrompt: "custom",
+      cwd: "/tmp",
+      selectedTools: @["bash"],
+      toolSnippets: snippets,
+      skills: skills))
+    check "<skill" notin sp
+
+  test "appendSystemPrompt 在默认提示之后":
+    var snippets = defaultToolSnippets()
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      cwd: "/tmp", selectedTools: @["read"], toolSnippets: snippets,
+      appendSystemPrompt: "tail section"))
+    let idxTools = sp.find("Available tools:")
+    let idxAppend = sp.find("tail section")
+    check idxAppend > idxTools
+    check idxAppend > 0
+
+  test "cwd 反斜杠归一":
+    var snippets = defaultToolSnippets()
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      cwd: "C:\\Users\\me", selectedTools: @["read"], toolSnippets: snippets))
+    check "Current working directory: C:/Users/me" in sp
+    check "\\" notin sp
+
+  test "默认分支 context 注入顺序（工具→guidelines→context→cwd）":
+    var snippets = defaultToolSnippets()
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      cwd: "/tmp", selectedTools: @["read"], toolSnippets: snippets,
+      contextFiles: @[ContextFile(path: "x.md", content: "x")]))
+    let idxTools = sp.find("Available tools:")
+    let idxCtx = sp.find("<project_context>")
+    let idxCwd = sp.find("Current working directory:")
+    check idxTools >= 0
+    check idxCtx > idxTools
+    check idxCwd > idxCtx
+
+  test "skills 注入（默认分支 + read 工具）":
+    var snippets = defaultToolSnippets()
+    let skills = @[Skill(name: "skill1", description: "desc1", filePath: "", baseDir: "", disableModelInvocation: false)]
+    let sp = buildSystemPrompt(BuildSystemPromptOptions(
+      cwd: "/tmp", selectedTools: @["read", "bash"], toolSnippets: snippets,
+      skills: skills))
+    check "<available_skills>" in sp
+    check "<skill name=\"skill1\">" in sp

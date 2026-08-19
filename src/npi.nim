@@ -19,6 +19,7 @@ import ./cachestats
 import ./configvalue
 import ./timings
 import ./trust
+import ./systemprompt
 
 type
   CliArgs = object
@@ -112,23 +113,16 @@ proc parseArgs(argv: seq[string]): CliArgs =
     result.prompt = positional.join(" ")
 
 proc systemPrompt(cwd: string, trustProject = true): string =
-  result = """You are npi, a coding agent that helps with programming tasks in the current repository.
-
-You have access to tools: read, write, edit, bash, ls, grep, find.
-- read <path> — read a file
-- write <path> <content> — write a file
-- edit <path> <oldText> <newText> — replace text
-- bash <command> — run a shell command (cwd: $1)
-- ls <path> — list a directory
-- grep <pattern> <path> — search text
-- find <path> <name> — find files by name
-
-Work iteratively: inspect, then edit, then verify. Keep responses concise. When done, summarize what you changed.""" % cwd
-  # 注入 Agent Skills（对齐 pi skills 系统）
-  let skills = loadSkills(cwd, trustProject)
-  let skillsPrompt = skills.skills.formatSkillsForPrompt()
-  if skillsPrompt.len > 0:
-    result.add "\n\n" & skillsPrompt
+  ## 组装系统提示（对齐 pi buildSystemPrompt，替代硬编码构造）。
+  let skills = loadSkills(cwd, trustProject).skills
+  var snippets = defaultToolSnippets()
+  # 工具行模板：bash 的 cwd 占位符
+  snippets["bash"] = "run a shell command (cwd: " & cwd & ")"
+  result = buildSystemPrompt(BuildSystemPromptOptions(
+    cwd: cwd,
+    selectedTools: @["read", "write", "edit", "bash", "ls", "grep", "find"],
+    toolSnippets: snippets,
+    skills: skills))
 
 proc historyToChat(history: seq[Message]): seq[ChatMessage] =
   ## 委托给 messages.convertToLlm（对齐 pi convertToLlm）。
