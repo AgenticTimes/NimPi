@@ -29,6 +29,7 @@ import ../src/attribution
 import ../src/diagnostics
 import ../src/settings
 import ../src/credentials
+import ../src/outputaccumulator
 import ../src/trust
 
 suite "types wire":
@@ -1215,6 +1216,118 @@ suite "credentials":
     check l.len == 2
     check "openai" in l
     check "gemini" in l
+
+suite "outputaccumulator":
+  test "多 chunk 拼接":
+    var acc = newOutputAccumulator()
+    acc.append("ab")
+    acc.append("c")
+    acc.append("def")
+    acc.finish()
+    let snap = acc.snapshot()
+    check snap.content == "abcdef"
+    check not snap.truncation.truncated
+    check snap.fullOutputPath.len == 0
+
+  test "UTF-8 跨 chunk 边界解码":
+    # "中" 是 3 字节（E4 B8 AD），拆成 1+2 字节两个 chunk
+    var acc = newOutputAccumulator()
+    acc.append("\xE4")
+    acc.append("\xB8\xAD!")
+    acc.finish()
+    let snap = acc.snapshot()
+    check snap.content == "中!"
+
+  test "行统计":
+    var acc = newOutputAccumulator()
+    acc.append("a\nb\nc")
+    acc.finish()
+    let snap = acc.snapshot()
+    check snap.truncation.totalLines == 3
+    check snap.content == "a\nb\nc"
+
+  test "字节超限 → truncatedBy=bytes":
+    var acc = newOutputAccumulator(OutputAccumulatorOptions(maxBytes: 10, maxLines: 100))
+    acc.append("12345678901234567890")
+    acc.finish()
+    let snap = acc.snapshot()
+    check snap.truncation.truncated
+    check snap.truncation.truncatedBy == "bytes"
+    check snap.truncation.totalBytes == 20
+
+  test "行超限 → 只保留最后 N 行":
+    var acc = newOutputAccumulator(OutputAccumulatorOptions(maxBytes: 10000, maxLines: 2))
+    acc.append("line1\nline2\nline3\nline4\nline5")
+    acc.finish()
+    let snap = acc.snapshot()
+    check snap.truncation.truncated
+    check snap.truncation.truncatedBy == "lines"
+    check snap.content == "line4\nline5"
+
+  test "未超限无临时文件":
+    var acc = newOutputAccumulator()
+    acc.append("short")
+    acc.finish()
+    let snap = acc.snapshot(persistIfTruncated = true)
+    check snap.fullOutputPath.len == 0
+
+  test "超限 persistIfTruncated → 全文路径存在":
+    var acc = newOutputAccumulator(OutputAccumulatorOptions(maxBytes: 16, maxLines: 100))
+    let longText = "0123456789abcdefghijklmnopqrstuvwxyz"  # 36 字节 > 16
+    acc.append(longText)
+    acc.finish()
+    let snap = acc.snapshot(persistIfTruncated = true)
+    check snap.truncation.truncated
+    check snap.fullOutputPath.len > 0
+    check fileExists(snap.fullOutputPath)
+    check readFile(snap.fullOutputPath) == longText
+    acc.closeTempFile()
+
+  test "finished 后 append 抛错":
+    var acc = newOutputAccumulator()
+    acc.append("x")
+    acc.finish()
+    expect ValueError:
+      acc.append("y")
+
+  test "getLastLineBytes":
+    var acc = newOutputAccumulator()
+    acc.append("hello")
+    check acc.getLastLineBytes() == 5
+    acc.append("\nworld")
+    check acc.getLastLineBytes() == 5
+
+  test "tail 裁剪不切分多字节字符":
+    # 小 rolling 窗口：强制 trimTail，中文不破裂
+    var acc = newOutputAccumulator(OutputAccumulatorOptions(maxBytes: 8, maxLines: 100))
+    # maxRollingBytes = 16，追加超过 32 字节触发裁剪
+    acc.append("a中b中c中d中e中f中g中h中i中j中k中l中")
+    acc.finish()
+    let snap = acc.snapshot()
+    check snap.content.len > 0
+    # 内容必须是有效 UTF-8（含中文且不包含孤立续字节）
+    check "中" in snap.content or "中" in acc.tailText
+
+  test "临时文件前缀与随机 id":
+    var acc1 = newOutputAccumulator(OutputAccumulatorOptions(maxBytes: 4, maxLines: 100))
+    var acc2 = newOutputAccumulator(OutputAccumulatorOptions(maxBytes: 4, maxLines: 100))
+    acc1.append("abcdefgh")
+    acc2.append("ijklmnop")
+    acc1.finish()
+    acc2.finish()
+    let s1 = acc1.snapshot(persistIfTruncated = true)
+    let s2 = acc2.snapshot(persistIfTruncated = true)
+    check s1.fullOutputPath.len > 0 and s2.fullOutputPath.len > 0
+    check s1.fullOutputPath != s2.fullOutputPath
+    check s1.fullOutputPath.contains("npi-output-")
+    check s1.fullOutputPath.endsWith(".log")
+
+  test "空输入":
+    var acc = newOutputAccumulator()
+    acc.finish()
+    let snap = acc.snapshot()
+    check snap.content.len == 0
+    check not snap.truncation.truncated
 
 suite "trust":
   test "findNearestTrustEntry 沿目录向上":

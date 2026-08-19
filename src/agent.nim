@@ -15,6 +15,7 @@ import ./bashtimeout
 import ./usagetotals
 import ./settings
 import ./cachestats
+import ./outputaccumulator
 
 type
   ToolResultRaw* = tuple
@@ -107,10 +108,17 @@ proc runTool*(name: string, args: JsonNode, cwd: string): ToolResultRaw =
       if tm > 0: bopts.timeoutMs = tm
       let br = execBashWithTimeout(cmd, bopts)
       let cleaned = br.output.sanitizeShellOutput()
-      let t = truncateTail(cleaned, defaultTruncationOptions())
-      let text = if t.truncated: t.content & "\n... [truncated " & formatSize(t.totalBytes) &
-                    ", showing last " & $t.outputLines & " lines]"
-                 else: t.content
+      # 输出经 accumulator：超限时保存全文到临时文件（对齐 pi output-accumulator）
+      var acc = newOutputAccumulator()
+      acc.append(cleaned)
+      acc.finish()
+      let snap = acc.snapshot(persistIfTruncated = true)
+      var text = snap.content
+      if snap.truncation.truncated:
+        text.add "\n... [truncated " & formatSize(snap.truncation.totalBytes) &
+          ", showing last " & $snap.truncation.outputLines & " lines]"
+        if snap.fullOutputPath.len > 0:
+          text.add "\n[full output: " & snap.fullOutputPath & "]"
       return ("", name, text, br.exitCode != 0 or br.timedOut)
     except CatchableError as e:
       return ("", name, "error: " & e.msg, true)
