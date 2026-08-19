@@ -1,0 +1,213 @@
+schema: comet.native.v4
+name: npi-providerconfig
+language: zh-CN
+phase: archive
+status: done
+state_version: 8
+brief: brief.md
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/npi-providerconfig
+  target_branch: master
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 补全模型配置的 provider 层（对齐 pi ProviderConfigSchema 核心字段）。
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/modelconfig.nim` 扩展："
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`ProviderDefinition`：name/baseUrl/apiKey/api/oauth/headers/authHeader/mo\
+      dels"
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`parseProviderDefinition(j)`：提取字段"
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`loadModelsJson` 扩展：解析 providers 表"
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: "`findProvider(config, id)`"
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: 接入（可选）：llm 用 provider 配置的 baseUrl/apiKey
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] ProviderDefinition 字段解析"
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] providers 表解析"
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] findProvider"
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] headers 解析"
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: provider 配置解析对齐 pi（字段/providers表/headers/models）
+      truncated: false
+builder_handoff:
+  candidate_id: 5af677ba-b53a-48a6-a6f1-bb9f42949763
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:6f6994e9-38ab-4139-8835-90659ca1f23f
+  iteration: 1
+  summary:
+    text: 补全 model-config 的 provider 配置对齐 pi
+      ProviderConfigSchema：ProviderDefinition(name/baseUrl/apiKey/api/oauth/authHeader/headers/models)、parseProviderDefinition、loadModelsJson
+      扩展解析 providers 表、findProvider。重构 modelconfig.nim 顺序（type→proc→load）避免前向引用。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 243 单测全绿（含 5 个 providerconfig 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: compat/thinkingLevelMap 待后续
+      truncated: false
+    - text: modelOverrides 待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-19T04:14:32.315Z
+blockers: []
+verification:
+  candidate_id: 5af677ba-b53a-48a6-a6f1-bb9f42949763
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:df8f530e-1b85-4d5b-bd12-d2c7d9b221d1
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-pc-ut
+      name:
+        text: NPI ProviderConfig 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_pc_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 3189
+  summary:
+    text: NPI ProviderConfig 验收全过：comet Runtime 实跑 243 单测 OK。
+    truncated: false
+  risks:
+    - text: compat/thinkingLevelMap 待后续
+      truncated: false
+    - text: modelOverrides 待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-19T04:14:44.606Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI ProviderConfig 验收全过：comet Runtime 实跑 243 单测 OK。
+      truncated: false
+    completed_at: 2026-08-19T04:14:44.606Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-19T04:12:26.340Z

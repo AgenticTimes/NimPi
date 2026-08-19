@@ -1792,3 +1792,42 @@ suite "modelconfig":
     check cfg.contextWindowFor("m1") == 50000
     check cfg.contextWindowFor("missing") == 200000
     removeFile("/tmp/npi_models_test2.json")
+
+suite "providerconfig":
+  test "parseProviderDefinition 字段":
+    let j = parseJson("""{"name": "anthropic", "baseUrl": "https://api.anthropic.com", "apiKey": "sk-x", "authHeader": true}""")
+    let p = parseProviderDefinition(j)
+    check p.name == "anthropic"
+    check p.baseUrl == "https://api.anthropic.com"
+    check p.apiKey == "sk-x"
+    check p.authHeader
+
+  test "providers 表解析 + findProvider":
+    writeFile("/tmp/npi_prov_test.json", """{"providers": {"openai": {"baseUrl": "https://api.openai.com"}, "anthropic": {"name": "anthropic", "api": "anthropic"}}}""")
+    let cfg = loadModelsJson("/tmp/npi_prov_test.json")
+    check cfg.providers.len == 2
+    let p = cfg.findProvider("openai")
+    check p.isSome
+    check p.get.baseUrl == "https://api.openai.com"
+    # 缺 name 用 key
+    let p2 = cfg.findProvider("anthropic")
+    check p2.isSome
+    check p2.get.name == "anthropic"
+    removeFile("/tmp/npi_prov_test.json")
+
+  test "provider headers 解析":
+    let j = parseJson("""{"name": "x", "headers": {"X-Key": "v1", "X-Other": "v2"}}""")
+    let p = parseProviderDefinition(j)
+    check p.headers["X-Key"] == "v1"
+    check p.headers["X-Other"] == "v2"
+
+  test "provider models 嵌套":
+    let j = parseJson("""{"name": "p", "models": [{"id": "m1", "contextWindow": 1000}]}""")
+    let p = parseProviderDefinition(j)
+    check p.models.len == 1
+    check p.models[0].id == "m1"
+    check p.models[0].contextWindow == 1000
+
+  test "findProvider 无则 none":
+    let cfg = ModelConfig(models: @[], providers: @[], sourcePath: "")
+    check cfg.findProvider("nope").isNone
