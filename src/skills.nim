@@ -127,13 +127,17 @@ proc loadSkillsFromDir*(dir: string): LoadSkillsResult =
       result.skills.add subRes.skills
       result.diagnostics.add subRes.diagnostics
 
-proc loadSkills*(projectRoot: string): LoadSkillsResult =
+proc loadSkills*(projectRoot: string, trustProject = true): LoadSkillsResult =
   ## 加载项目级 .npi/skills/ 与用户级 NPI_AGENT_DIR/skills（默认 ~/.npi/skills）。
+  ## trustProject=false（项目未信任）时跳过项目级目录，仍加载用户级。
   result = LoadSkillsResult()
-  let projectSkills = projectRoot / ".npi" / "skills"
   let userDir = getEnv("NPI_AGENT_DIR", getHomeDir() / ".npi")
   let userSkills = userDir / "skills"
-  for d in [projectSkills, userSkills]:
+  var dirs: seq[string] = @[]
+  if trustProject:
+    dirs.add projectRoot / ".npi" / "skills"
+  dirs.add userSkills
+  for d in dirs:
     let r = loadSkillsFromDir(d)
     result.skills.add r.skills
     result.diagnostics.add r.diagnostics
