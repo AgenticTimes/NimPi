@@ -16,6 +16,7 @@ import ./messages
 import ./eventbus
 import ./usagetotals
 import ./cachestats
+import ./timings
 
 type
   CliArgs = object
@@ -351,6 +352,7 @@ proc printMessage(d: string) =
   stdout.flushFile()
 
 proc main() =
+  resetTimings("main")
   let args = parseArgs(commandLineParams())
   if args.listModels:
     stdout.write("默认模型: " & args.model & "\n")
@@ -361,6 +363,7 @@ proc main() =
 
   let cwd = getCurrentDir()
   var agent = newAgent(nil, cwd)
+  time("agent-init", "main")
   agent.maxIterations = args.maxIterations
   agent.eventBus = newEventBus()
   agent.compactionSettings = defaultCompactionSettings()

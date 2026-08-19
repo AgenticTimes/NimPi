@@ -1080,3 +1080,26 @@ suite "diagnostics":
     check resourceTypeName(rtExtension) == "extension"
     check resourceTypeName(rtPrompt) == "prompt"
     check resourceTypeName(rtTheme) == "theme"
+
+suite "finalintegrate":
+  test "llm attribution header 生成":
+    let client = newLlmClient(ClientOptions(provider: "openrouter", apiKey: "k",
+      attributionEnabled: true))
+    let hdrs = client.attributionHeaderTuples()
+    var found = false
+    for (k, v) in hdrs:
+      if k == "HTTP-Referer": found = true
+    check found
+    check hdrs.len > 0
+
+  test "attribution 未启用无 header":
+    let client = newLlmClient(ClientOptions(provider: "openrouter", apiKey: "k"))
+    check client.attributionHeaderTuples().len == 0
+
+  test "timings main 标记（启用时）":
+    putEnv("NPI_TIMING", "1")
+    resetTimings("main")
+    time("agent-init", "main")
+    let r = printTimings()
+    check "agent-init" in r
+    delEnv("NPI_TIMING")

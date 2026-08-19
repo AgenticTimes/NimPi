@@ -1,8 +1,9 @@
 ## LLM 提供方：OpenAI 兼容 Chat Completions 流式（SSE）解析。
 ## 对齐 pi `pi-ai` 的 stream 事件接口，只保留 streamSimple 所需的最小面。
 
-import std/[httpclient, json, strutils, asyncdispatch]
+import std/[httpclient, json, strutils, asyncdispatch, tables]
 import ./types
+import ./attribution
 
 type
   LlmError* = object of CatchableError
@@ -32,15 +33,26 @@ type
     toolCalls*: seq[JsonNode]   ## 已有 assistant tool_calls（来自历史）
 
   ClientOptions* = object
-    provider*: string       ## "openai" | "anthropic"
+    provider*: string       ## "openai" | "anthropic" | "gemini"
     apiKey*: string
     baseUrl*: string
     model*: string
     timeoutMs*: int
     anthropicVersion*: string   ## Anthropic 需要的 x-api-version 头
+    attributionEnabled*: bool   ## 归属 header（对齐 pi provider-attribution）
+    sessionId*: string          ## opencode session
 
   LlmClient* = ref object
     opts*: ClientOptions
+
+proc attributionHeaderTuples*(client: LlmClient): seq[tuple[k, v: string]] =
+  ## 生成归属 header（对齐 pi mergeProviderAttributionHeaders），供请求头合并。
+  result = @[]
+  if not client.opts.attributionEnabled: return
+  let merged = mergeProviderAttributionHeaders(client.opts.provider, client.opts.baseUrl,
+                                               client.opts.sessionId, true)
+  for k, v in merged:
+    result.add (k, v)
 
 proc newLlmClient*(opts: ClientOptions): LlmClient =
   result = LlmClient(opts: opts)
@@ -384,12 +396,13 @@ proc stream*(client: LlmClient, messages: seq[ChatMessage],
   # ---- OpenAI 兼容（Chat Completions）----
   let model = client.opts.model
   let body = buildBody(messages, tools, model)
+  # 归属 header 合并（对齐 pi provider-attribution）
+  var hdrs = @[("Authorization", "Bearer " & client.opts.apiKey),
+               ("Content-Type", "application/json"),
+               ("Accept", "text/event-stream")]
+  hdrs.add client.attributionHeaderTuples()
   let http = newAsyncHttpClient(
-    headers = newHttpHeaders([
-      ("Authorization", "Bearer " & client.opts.apiKey),
-      ("Content-Type", "application/json"),
-      ("Accept", "text/event-stream")
-    ]))
+    headers = newHttpHeaders(hdrs))
   var full = ""
   var toolName = ""
   var toolId = ""
