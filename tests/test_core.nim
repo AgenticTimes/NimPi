@@ -23,6 +23,7 @@ import ../src/eventbus
 import ../src/usagetotals
 import ../src/cachestats
 import ../src/configvalue
+import ../src/timings
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -924,3 +925,33 @@ suite "configvalue":
     check not isConfigValueConfigured("$MISSING", env)
     env["MISSING"] = "x"
     check isConfigValueConfigured("$MISSING", env)
+
+suite "timings":
+  test "未启用时 no-op":
+    # 确保 NPI_TIMING 未设
+    delEnv("NPI_TIMING")
+    resetTimings("main")
+    time("a", "main")
+    check printTimings() == ""
+
+  test "启用时记录间隔":
+    putEnv("NPI_TIMING", "1")
+    resetTimings("main")
+    time("step1", "main")
+    time("step2", "main")
+    let r = printTimings()
+    check "step1" in r
+    check "step2" in r
+    check "TOTAL" in r
+    delEnv("NPI_TIMING")
+
+  test "不同 namespace 独立":
+    putEnv("NPI_TIMING", "1")
+    resetTimings("main")
+    resetTimings("extensions")
+    time("a", "main")
+    time("b", "extensions")
+    let r = printTimings()
+    check "main" in r
+    check "extensions" in r
+    delEnv("NPI_TIMING")
