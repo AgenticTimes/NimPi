@@ -1,32 +1,206 @@
 schema: comet.native.v4
 name: npi-settings
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-settings
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 实现设置结构（对齐 pi settings-manager.ts 的 Settings 接口 + 默认值 + deepMerge）。
+    result: passed
+    reason:
+      text: Settings 结构对齐 pi settings-manager.ts
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/settings.nim`："
+    result: passed
+    reason:
+      text: src/settings.nim：各 settings 结构
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`CompactionSettings`/`BranchSummarySettings`/`RetrySettings`/`TerminalSe\
+      ttings`/`MarkdownSettings`"
+    result: passed
+    reason:
+      text: SettingsCompaction 结构
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`Settings`：defaultProvider/defaultModel/compaction/retry/terminal/markdo\
+      wn/showCacheMissNotices 等核心字段"
+    result: passed
+    reason:
+      text: Retry/BranchSummary 结构
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: "`defaultSettings()`：默认值（compaction reserve 16384/keepRecent 20000、retry
+      maxRetries 3/baseDelay 2000、terminal showImages true）"
+    result: passed
+    reason:
+      text: Terminal/Markdown/Warning 结构
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: "`deepMergeSettings(base, overrides)`：递归合并（nested 对象）"
+    result: passed
+    reason:
+      text: defaultSettings 默认值
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: 接入（可选）：agent 用 settings.compaction 替代硬编码
+    result: passed
+    reason:
+      text: mergeSettings 标量覆盖
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] 各 settings 结构字段"
+    result: passed
+    reason:
+      text: mergeSettings 嵌套覆盖
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] defaultSettings 默认值"
+    result: passed
+    reason:
+      text: 默认值（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] deepMerge 递归合并"
+    result: passed
+    reason:
+      text: 标量/嵌套/retry 覆盖（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 覆盖优先级正确"
+    result: passed
+    reason:
+      text: 避免与 compaction.nim 类型名冲突
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 158 项）
+      truncated: false
+builder_handoff:
+  candidate_id: b3f81d3d-4821-498a-b470-67cc4f6774c2
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:1bb4ff3e-b01a-4888-bae8-7bf8d5835b50
+  iteration: 1
+  summary:
+    text: 实现 Settings 精简版对齐 pi
+      settings-manager.ts：SettingsCompaction/BranchSummary/Retry/ProviderRetry/Terminal/Markdown/Warning
+      结构、defaultSettings（compaction reserve16384/keepRecent20000、retry
+      max3/base2000ms、terminal showImages、markdown streaming）、mergeSettings
+      递归合并（标量+nested 覆盖）。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 158 单测全绿（含 4 个 settings 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 全量 Settings（packages/extensions/themes）待后续
+      truncated: false
+    - text: 文件读写/persistence 待后续
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-19T00:43:31.134Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: b3f81d3d-4821-498a-b470-67cc4f6774c2
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:a2045661-3cc2-465e-9f35-b6f1397b61d8
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-st-ut
+      name:
+        text: NPI Settings 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_st_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 2767
+  summary:
+    text: NPI Settings 验收全过：comet Runtime 实跑 158 单测 OK。
+    truncated: false
+  risks:
+    - text: 全量 Settings 待后续
+      truncated: false
+    - text: 文件读写/persistence 待后续
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-19T00:43:44.189Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Settings 验收全过：comet Runtime 实跑 158 单测 OK。
+      truncated: false
+    completed_at: 2026-08-19T00:43:44.189Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +211,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-19T00:41:47.562Z
