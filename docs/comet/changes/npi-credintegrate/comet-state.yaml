@@ -1,32 +1,203 @@
 schema: comet.native.v4
 name: npi-credintegrate
 language: zh-CN
-phase: shape
+phase: archive
 status: active
-state_version: 1
+state_version: 6
 brief: brief.md
-spec_changes: []
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
 workspace:
   isolation: worktree
   change_branch: comet/npi-credintegrate
   target_branch: master
   finish: null
 loop:
-  stage: shape
+  stage: archive-ready
   goal_cycle: 1
-  iteration: 0
-  attempt: 0
+  iteration: 1
+  attempt: 1
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-shape
-acceptance: []
-builder_handoff: null
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 把 credentials 模块接入 CLI 凭据解析（对齐 pi 的 RuntimeCredentials 用法：运行时覆盖 + 持久
+      store）。
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`npi.nim` main：凭据解析统一走 RuntimeCredentials"
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: baseLookup：auth.json（持久）+ env
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: 覆盖：--api-key 显式（setRuntimeApiKey）
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: read(provider) 返回最终 key
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 简化现有 authintegrate 的分支逻辑
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: "[ ] RuntimeCredentials 组合解析"
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] --api-key 覆盖最高"
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] auth.json 次之"
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] env 兜底"
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] 现有单测全绿"
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 集成单测"
+    result: passed
+    reason:
+      text: credentials 接入 CLI（RuntimeCredentials 组合）
+      truncated: false
+builder_handoff:
+  candidate_id: 200d3443-c6be-42ac-bd26-5a08b25d7c01
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:223ac204-5151-44e5-8383-6704959c4f58
+  iteration: 1
+  summary:
+    text: 把 credentials 接入 CLI 凭据解析：RuntimeCredentials 统一组合（baseLookup = auth.json
+      持久凭据优先于 env，覆盖 = --api-key 显式 setRuntimeApiKey），main 用
+      creds.read(effectiveProvider) 取最终 key。消除 credentials 0-ref 孤岛，简化
+      authintegrate 分支逻辑。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 253 单测全绿（含 4 个 credintegrate 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 凭据写入 CLI 待后续
+      truncated: false
+    - text: diagnostics/exec 独立 API
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-19T04:19:42.357Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: 200d3443-c6be-42ac-bd26-5a08b25d7c01
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:3fe7737f-6dca-408f-8e61-4df5a8fe996a
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-ci2-ut
+      name:
+        text: NPI CredIntegrate 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_ci2_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 5368
+  summary:
+    text: NPI CredIntegrate 验收全过：comet Runtime 实跑 253 单测 OK。
+    truncated: false
+  risks:
+    - text: 凭据写入 CLI 待后续
+      truncated: false
+    - text: diagnostics/exec 独立 API
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-19T04:19:57.200Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI CredIntegrate 验收全过：comet Runtime 实跑 253 单测 OK。
+      truncated: false
+    completed_at: 2026-08-19T04:19:57.200Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -37,7 +208,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-19T04:18:44.156Z
