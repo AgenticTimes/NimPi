@@ -16,6 +16,7 @@ import ./messages
 import ./eventbus
 import ./usagetotals
 import ./cachestats
+import ./configvalue
 import ./timings
 
 type
@@ -48,6 +49,12 @@ proc parseArgs(argv: seq[string]): CliArgs =
       getEnv("GEMINI_API_KEY", getEnv("NPI_API_KEY", ""))
     else:
       getEnv("OPENAI_API_KEY", getEnv("NPI_API_KEY", ""))
+  # 支持 $ENV / $!cmd 模板（对齐 pi 配置值解析）
+  if result.apiKey.len > 0 and (result.apiKey.contains("$")):
+    var envTable = initTable[string, string]()
+    for k, v in envPairs():
+      envTable[k] = v
+    result.apiKey = resolveConfigValue(result.apiKey, envTable)
   result.sessionDir = getEnv("NPI_SESSION_DIR", os.getCurrentDir() / ".npi/sessions")
   result.maxIterations = 10
   var positional: seq[string] = @[]
