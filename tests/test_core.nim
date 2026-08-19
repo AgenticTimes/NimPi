@@ -1169,3 +1169,16 @@ suite "settings":
     let merged = mergeSettings(base, over)
     check merged.retry.maxRetries == 5
     check merged.retry.baseDelayMs == 1000
+
+suite "settingsintegrate":
+  test "newAgent compactionSettings 来自 settings 默认":
+    var agent = newAgent(nil, ".")
+    check agent.compactionSettings.reserveTokens == 16384
+    check agent.compactionSettings.keepRecentTokens == 20000
+    check agent.compactionSettings.enabled
+
+  test "defaultSettings compaction 值":
+    let st = defaultSettings()
+    check st.compaction.reserveTokens == 16384
+    check st.compaction.keepRecentTokens == 20000
+    check st.compaction.enabled

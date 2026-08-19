@@ -13,6 +13,7 @@ import ./find
 import ./lsdir
 import ./bashtimeout
 import ./usagetotals
+import ./settings
 import ./cachestats
 
 type
@@ -189,5 +190,11 @@ proc setSystemPrompt*(a: var Agent, text: string) =
 
 proc newAgent*(handler: ToolHandler, cwd: string): Agent =
   result = Agent(handler: handler, cwd: cwd, maxIterations: 10, tools: defaultTools())
+  # 从 settings 初始化 compaction（对齐 pi settings 用法）
+  let st = defaultSettings()
+  result.compactionSettings = CompactionSettings(enabled: st.compaction.enabled,
+    reserveTokens: st.compaction.reserveTokens,
+    keepRecentTokens: st.compaction.keepRecentTokens,
+    contextWindow: 200000)
   if result.handler.isNil:
     result.handler = runTool
