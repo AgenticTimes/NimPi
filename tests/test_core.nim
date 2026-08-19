@@ -1012,3 +1012,43 @@ suite "attribution":
     let m = mergeProviderAttributionHeaders("opencode", "", "sess-9", true)
     check m.hasKey("x-opencode-session")
     check m["x-opencode-client"] == "pi"
+
+suite "headers":
+  test "resolveHeaders 逐项解析":
+    var env = initTable[string, string]()
+    env["TOKEN"] = "abc123"
+    var hdrs = initTable[string, string]()
+    hdrs["Authorization"] = "Bearer $TOKEN"
+    hdrs["X-Static"] = "fixed"
+    let r = resolveHeaders(hdrs, env)
+    check r["Authorization"] == "Bearer abc123"
+    check r["X-Static"] == "fixed"
+
+  test "空值跳过":
+    var env = initTable[string, string]()
+    var hdrs = initTable[string, string]()
+    hdrs["X-Missing"] = "$NOT_SET"
+    hdrs["X-Ok"] = "value"
+    let r = resolveHeaders(hdrs, env)
+    check not r.hasKey("X-Missing")
+    check r["X-Ok"] == "value"
+
+  test "全空返回空表":
+    var env = initTable[string, string]()
+    var hdrs = initTable[string, string]()
+    hdrs["A"] = "$NOPE"
+    let r = resolveHeaders(hdrs, env)
+    check r.len == 0
+
+  test "命令值解析":
+    var env = initTable[string, string]()
+    var hdrs = initTable[string, string]()
+    hdrs["X-Cmd"] = "$!echo cmdval"
+    let r = resolveHeaders(hdrs, env)
+    check r["X-Cmd"] == "cmdval"
+
+  test "clearConfigValueCache":
+    # 填充缓存后清空（间接验证不崩）
+    discard resolveConfigValue("$!echo cachetest", initTable[string, string]())
+    clearConfigValueCache()
+    check true
