@@ -1,19 +1,23 @@
-# NPI ConfigIntegrate — Specification
+# NPI Settings — Specification
 
 ## 目标
-把 configvalue 的 resolveConfigValue 接入 CLI apiKey 解析，消除 0-ref 孤岛。
+为 npi 实现设置结构（对齐 pi settings-manager.ts 的 Settings 接口 + 默认值 + deepMerge）。
 
 ## 范围
-- `npi.nim` parseArgs：apiKey 获取后用 resolveConfigValue 解析（支持 `$ENV`、`$!cmd`、字面量模板）
-- 空 env 时保持原行为
+- `src/settings.nim`：
+  - `CompactionSettings`/`BranchSummarySettings`/`RetrySettings`/`TerminalSettings`/`MarkdownSettings`
+  - `Settings`：defaultProvider/defaultModel/compaction/retry/terminal/markdown/showCacheMissNotices 等核心字段
+  - `defaultSettings()`：默认值（compaction reserve 16384/keepRecent 20000、retry maxRetries 3/baseDelay 2000、terminal showImages true）
+  - `deepMergeSettings(base, overrides)`：递归合并（nested 对象）
+- 接入（可选）：agent 用 settings.compaction 替代硬编码
 
 ## 非目标
-- 完整配置系统 —— 仅 apiKey 模板
-- exec/diagnostics 接入 —— 独立 API 模块保留
+- 全量 Settings（packages/extensions/themes 等）—— 核心子集
+- 文件读写/persistence —— 仅结构+合并
 
 ## 验收
-- [ ] apiKey 支持 $ENV 模板
-- [ ] apiKey 支持 $!cmd 模板
-- [ ] 字面 apiKey 不变
-- [ ] 现有单测全绿
-- [ ] 集成单测
+- [ ] 各 settings 结构字段
+- [ ] defaultSettings 默认值
+- [ ] deepMerge 递归合并
+- [ ] 覆盖优先级正确
+- [ ] 单测覆盖
