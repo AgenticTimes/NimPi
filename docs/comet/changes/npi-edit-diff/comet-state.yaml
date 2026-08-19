@@ -1,0 +1,395 @@
+schema: comet.native.v4
+name: npi-edit-diff
+language: zh-CN
+phase: build
+status: active
+state_version: 2
+brief: brief.md
+spec_changes:
+  - capability: edit-diff
+    operation: create
+    source: specs/edit-diff/spec.md
+workspace:
+  isolation: branch
+  change_branch: comet/npi-edit-diff
+  target_branch: master
+  finish: null
+loop:
+  stage: building
+  goal_cycle: 1
+  iteration: 1
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: submit-builder-candidate
+acceptance:
+  - id: A1
+    source: brief.md
+    text: 精确匹配：content 含 oldText → found，usedFuzzyMatch=false，index 精确
+    result: pending
+    reason: null
+  - id: A2
+    source: brief.md
+    text: 模糊匹配：oldText 带行尾空格差异 → found，usedFuzzyMatch=true
+    result: pending
+    reason: null
+  - id: A3
+    source: brief.md
+    text: 智能引号：oldText 用 U+201C/U+201D，content 用 ASCII 引号 → 模糊命中
+    result: pending
+    reason: null
+  - id: A4
+    source: brief.md
+    text: 无匹配 → found=false
+    result: pending
+    reason: null
+  - id: A5
+    source: brief.md
+    text: 单编辑 applyEdits：oldText 不存在 → 抛 "Could not find the exact text in <path>..."
+    result: pending
+    reason: null
+  - id: A6
+    source: brief.md
+    text: oldText 出现 2 次 → 抛 "Found 2 occurrences of the text in <path>..."
+    result: pending
+    reason: null
+  - id: A7
+    source: brief.md
+    text: oldText 为空 → 抛 "oldText must not be empty in <path>."
+    result: pending
+    reason: null
+  - id: A8
+    source: brief.md
+    text: 替换结果与原文相同 → 抛 "No changes made to <path>..."
+    result: pending
+    reason: null
+  - id: A9
+    source: brief.md
+    text: 两编辑重叠 → 抛 overlap 错误
+    result: pending
+    reason: null
+  - id: A10
+    source: brief.md
+    text: CRLF 内容：oldText 用 LF → normalize 后命中，结果行尾保持 CRLF
+    result: pending
+    reason: null
+  - id: A11
+    source: specs/edit-diff/spec.md
+    text: 对齐 pi-coding-agent 的 `core/tools/edit-diff.ts` 核心编辑语义。归档后
+      `src/editdiff.nim` 的完整行为如下。
+    result: pending
+    reason: null
+  - id: A12
+    source: specs/edit-diff/spec.md
+    text: '`detectLineEnding*(content: string): LineEnding` — 内容含 "\r\n" 返回
+      leCrLf，否则 leLf'
+    result: pending
+    reason: null
+  - id: A13
+    source: specs/edit-diff/spec.md
+    text: '`normalizeToLF*(text: string): string` — 把 "\r\n" 替换为 "\n"'
+    result: pending
+    reason: null
+  - id: A14
+    source: specs/edit-diff/spec.md
+    text: '`restoreLineEndings*(text: string, ending: LineEnding): string` — leCrLf
+      时把 "\n" 替换为 "\r\n"，leLf 原样'
+    result: pending
+    reason: null
+  - id: A15
+    source: specs/edit-diff/spec.md
+    text: 对齐 pi 的字符替换集（顺序）：
+    result: pending
+    reason: null
+  - id: A16
+    source: specs/edit-diff/spec.md
+    text: 每行行尾 trim（`\n` 分行，每行 trimEnd）
+    result: pending
+    reason: null
+  - id: A17
+    source: specs/edit-diff/spec.md
+    text: 智能单引号 U+2018 U+2019 U+201A U+201B → `'`
+    result: pending
+    reason: null
+  - id: A18
+    source: specs/edit-diff/spec.md
+    text: 智能双引号 U+201C U+201D U+201E U+201F → `"`
+    result: pending
+    reason: null
+  - id: A19
+    source: specs/edit-diff/spec.md
+    text: 破折号 U+2010 U+2011 U+2012 U+2013 U+2014 U+2015 U+2212 → `-`
+    result: pending
+    reason: null
+  - id: A20
+    source: specs/edit-diff/spec.md
+    text: 特殊空格 U+00A0 U+2002 U+2003 U+2004 U+2005 U+2006 U+2007 U+2008 U+2009 U+200A
+      U+202F U+205F U+3000 → ` `
+    result: pending
+    reason: null
+  - id: A21
+    source: specs/edit-diff/spec.md
+    text: Nim 实现：直接对 UTF-8 字节序列做替换（用 rune 迭代或字节模式替换）。替换在规范化文本上顺序执行，结果与 pi 一致。
+    result: pending
+    reason: null
+  - id: A22
+    source: specs/edit-diff/spec.md
+    text: 输入：content, oldText。行为：
+    result: pending
+    reason: null
+  - id: A23
+    source: specs/edit-diff/spec.md
+    text: "精确匹配：content.indexOf(oldText) ≠ -1 → {found: true, index: 精确偏移,
+      matchLength: oldText.len, usedFuzzyMatch: false, contentForReplacement:
+      content}"
+    result: pending
+    reason: null
+  - id: A24
+    source: specs/edit-diff/spec.md
+    text: "模糊匹配：fuzzyContent = normalizeForFuzzyMatch(content)，fuzzyOldText =
+      normalizeForFuzzyMatch(oldText)；fuzzyContent.indexOf(fuzzyOldText) ≠ -1 →
+      {found: true, index: 模糊偏移, matchLength: fuzzyOldText.len, usedFuzzyMatch:
+      true, contentForReplacement: fuzzyContent}"
+    result: pending
+    reason: null
+  - id: A25
+    source: specs/edit-diff/spec.md
+    text: "均无 → {found: false, index: -1, matchLength: 0, usedFuzzyMatch: false,
+      contentForReplacement: content}"
+    result: pending
+    reason: null
+  - id: A26
+    source: specs/edit-diff/spec.md
+    text: "`normalizeForFuzzyMatch(content).split(normalizeForFuzzyMatch(oldText)).\
+      len - 1`。"
+    result: pending
+    reason: null
+  - id: A27
+    source: specs/edit-diff/spec.md
+    text: "输入：normalizedContent（LF 已归一）, edits: seq[Edit], path: string。行为："
+    result: pending
+    reason: null
+  - id: A28
+    source: specs/edit-diff/spec.md
+    text: normalizedEdits = edits 每项 normalizeToLF
+    result: pending
+    reason: null
+  - id: A29
+    source: specs/edit-diff/spec.md
+    text: 逐项检查 oldText 为空 → 抛 getEmptyOldTextError(path, i, edits.len)
+    result: pending
+    reason: null
+  - id: A30
+    source: specs/edit-diff/spec.md
+    text: 对 normalizedContent 逐 edit 调 fuzzyFindText 求初始匹配；任一 usedFuzzyMatch →
+      replacementBaseContent = normalizeForFuzzyMatch(normalizedContent)，否则 =
+      normalizedContent
+    result: pending
+    reason: null
+  - id: A31
+    source: specs/edit-diff/spec.md
+    text: 对 replacementBaseContent 逐 edit：fuzzyFindText 不 found → 抛
+      getNotFoundError；countOccurrences > 1 → 抛 getDuplicateError
+    result: pending
+    reason: null
+  - id: A32
+    source: specs/edit-diff/spec.md
+    text: matchedEdits 按 matchIndex 升序排序；相邻项重叠（prev.index + prev.len > curr.index）→
+      抛 overlap 错误
+    result: pending
+    reason: null
+  - id: A33
+    source: specs/edit-diff/spec.md
+    text: 在 replacementBaseContent 上按 matchIndex 逆序替换（保持偏移稳定）
+    result: pending
+    reason: null
+  - id: A34
+    source: specs/edit-diff/spec.md
+    text: baseContent == newContent → 抛 getNoChangeError
+    result: pending
+    reason: null
+  - id: A35
+    source: specs/edit-diff/spec.md
+    text: "返回 {baseContent: normalizedContent, newContent}"
+    result: pending
+    reason: null
+  - id: A36
+    source: specs/edit-diff/spec.md
+    text: "单编辑 not found: `Could not find the exact text in <path>. The old text
+      must match exactly including all whitespace and newlines.`"
+    result: pending
+    reason: null
+  - id: A37
+    source: specs/edit-diff/spec.md
+    text: "多编辑 not found: `Could not find edits[<i>] in <path>. The oldText must
+      match exactly including all whitespace and newlines.`"
+    result: pending
+    reason: null
+  - id: A38
+    source: specs/edit-diff/spec.md
+    text: "单编辑 duplicate: `Found <n> occurrences of the text in <path>. The text
+      must be unique. Please provide more context to make it unique.`"
+    result: pending
+    reason: null
+  - id: A39
+    source: specs/edit-diff/spec.md
+    text: "多编辑 duplicate: `Found <n> occurrences of edits[<i>] in <path>. Each
+      oldText must be unique. Please provide more context to make it unique.`"
+    result: pending
+    reason: null
+  - id: A40
+    source: specs/edit-diff/spec.md
+    text: "单编辑 empty: `oldText must not be empty in <path>.`"
+    result: pending
+    reason: null
+  - id: A41
+    source: specs/edit-diff/spec.md
+    text: "多编辑 empty: `edits[<i>].oldText must not be empty in <path>.`"
+    result: pending
+    reason: null
+  - id: A42
+    source: specs/edit-diff/spec.md
+    text: "单编辑 no change: `No changes made to <path>. The replacement produced
+      identical content. This might indicate an issue with special characters or
+      the text not existing as expected.`"
+    result: pending
+    reason: null
+  - id: A43
+    source: specs/edit-diff/spec.md
+    text: "多编辑 no change: `No changes made to <path>. The replacements produced
+      identical content.`"
+    result: pending
+    reason: null
+  - id: A44
+    source: specs/edit-diff/spec.md
+    text: "overlap: `edits[<prev>] and edits[<curr>] overlap in <path>. Merge them
+      into one edit or target disjoint regions.`"
+    result: pending
+    reason: null
+  - id: A45
+    source: specs/edit-diff/spec.md
+    text: 现有 `of "edit"` 分支（find oldText → 替换）替换为：
+    result: pending
+    reason: null
+  - id: A46
+    source: specs/edit-diff/spec.md
+    text: 错误消息直接透传（对齐 pi 文本）。readFile 的读取错误沿用现有分支的 except CatchableError 处理。
+    result: pending
+    reason: null
+  - id: A47
+    source: specs/edit-diff/spec.md
+    text: normalizeForFuzzyMatch：行尾 trim、智能引号、破折号、特殊空格逐一断言
+    result: pending
+    reason: null
+  - id: A48
+    source: specs/edit-diff/spec.md
+    text: fuzzyFindText 精确：found/usedFuzzyMatch=false/index 正确
+    result: pending
+    reason: null
+  - id: A49
+    source: specs/edit-diff/spec.md
+    text: fuzzyFindText 模糊（行尾空格差异）：found/usedFuzzyMatch=true
+    result: pending
+    reason: null
+  - id: A50
+    source: specs/edit-diff/spec.md
+    text: fuzzyFindText 模糊（智能引号差异）：命中
+    result: pending
+    reason: null
+  - id: A51
+    source: specs/edit-diff/spec.md
+    text: fuzzyFindText 无匹配：found=false
+    result: pending
+    reason: null
+  - id: A52
+    source: specs/edit-diff/spec.md
+    text: countOccurrences：0/1/2 次
+    result: pending
+    reason: null
+  - id: A53
+    source: specs/edit-diff/spec.md
+    text: applyEdits 单编辑成功：替换正确
+    result: pending
+    reason: null
+  - id: A54
+    source: specs/edit-diff/spec.md
+    text: applyEdits 多编辑逆序：两处不重叠替换都生效
+    result: pending
+    reason: null
+  - id: A55
+    source: specs/edit-diff/spec.md
+    text: 空 oldText → 抛错（消息对齐）
+    result: pending
+    reason: null
+  - id: A56
+    source: specs/edit-diff/spec.md
+    text: not found → 抛错（消息对齐，单编辑变体）
+    result: pending
+    reason: null
+  - id: A57
+    source: specs/edit-diff/spec.md
+    text: duplicate（2 次出现）→ 抛错（消息含 occurrences）
+    result: pending
+    reason: null
+  - id: A58
+    source: specs/edit-diff/spec.md
+    text: overlap 两编辑 → 抛错
+    result: pending
+    reason: null
+  - id: A59
+    source: specs/edit-diff/spec.md
+    text: no change（newText == oldText）→ 抛错
+    result: pending
+    reason: null
+  - id: A60
+    source: specs/edit-diff/spec.md
+    text: CRLF：normalizeToLF/restoreLineEndings 往返
+    result: pending
+    reason: null
+  - id: A61
+    source: specs/edit-diff/spec.md
+    text: 多编辑 not found → edits[1] 变体消息
+    result: pending
+    reason: null
+  - id: A62
+    source: specs/edit-diff/spec.md
+    text: unified patch 生成（jsdiff 依赖）
+    result: pending
+    reason: null
+  - id: A63
+    source: specs/edit-diff/spec.md
+    text: NFKC 完整规范化（仅字符替换集）
+    result: pending
+    reason: null
+  - id: A64
+    source: specs/edit-diff/spec.md
+    text: BOM 处理
+    result: pending
+    reason: null
+  - id: A65
+    source: specs/edit-diff/spec.md
+    text: applyReplacementsPreservingUnchangedLines
+      行级叠加（模糊编辑时结果在规范化空间返回，未改动行的行尾字节可能变化）
+    result: pending
+    reason: null
+builder_handoff: null
+blockers: []
+verification: null
+history: []
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pending
+verification_report: null
+archived: false
+created_at: 2026-08-19T02:40:08.894Z

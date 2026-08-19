@@ -31,6 +31,7 @@ import ../src/settings
 import ../src/credentials
 import ../src/outputaccumulator
 import ../src/systemprompt
+import ../src/editdiff
 import ../src/trust
 
 suite "types wire":
@@ -1607,3 +1608,105 @@ suite "systemprompt":
       skills: skills))
     check "<available_skills>" in sp
     check "<skill name=\"skill1\">" in sp
+
+suite "editdiff":
+  test "normalizeForFuzzyMatch 行尾 trim":
+    check normalizeForFuzzyMatch("a  \nb\t\nc") == "a\nb\nc"
+
+  test "normalizeForFuzzyMatch 智能引号":
+    check normalizeForFuzzyMatch("\u2018x\u2019 \u201Cy\u201D") == "'x' \"y\""
+
+  test "normalizeForFuzzyMatch 破折号与特殊空格":
+    check normalizeForFuzzyMatch("a\u2014b\u00A0c") == "a-b c"
+
+  test "fuzzyFindText 精确匹配":
+    let r = fuzzyFindText("hello world", "world")
+    check r.found
+    check not r.usedFuzzyMatch
+    check r.index == 6
+    check r.matchLength == 5
+
+  test "fuzzyFindText 模糊匹配（行尾空格差异）":
+    let r = fuzzyFindText("line one  \nline two", "line one \nline two")
+    check r.found
+    check r.usedFuzzyMatch
+
+  test "fuzzyFindText 模糊匹配（智能引号差异）":
+    let r = fuzzyFindText("he said \u201Chello\u201D", "he said \"hello\"")
+    check r.found
+    check r.usedFuzzyMatch
+
+  test "fuzzyFindText 无匹配":
+    let r = fuzzyFindText("abc", "xyz")
+    check not r.found
+    check r.index == -1
+
+  test "countOccurrences":
+    check countOccurrences("a b a b a", "a") == 3
+    check countOccurrences("abc", "x") == 0
+    check countOccurrences("a  \nb", "a\nb") == 1  # 模糊计数
+
+  test "applyEdits 单编辑成功":
+    let res = applyEditsToNormalizedContent("hello world", @[Edit(oldText: "world", newText: "npi")], "/tmp/f")
+    check res.newContent == "hello npi"
+
+  test "applyEdits 多编辑逆序应用":
+    let res = applyEditsToNormalizedContent("a X b Y c", @[
+      Edit(oldText: "X", newText: "1"),
+      Edit(oldText: "Y", newText: "2"),
+    ], "/tmp/f")
+    check res.newContent == "a 1 b 2 c"
+
+  test "applyEdits 空 oldText 抛错":
+    expect ValueError:
+      discard applyEditsToNormalizedContent("abc", @[Edit(oldText: "", newText: "x")], "/tmp/f")
+
+  test "applyEdits not found 抛错（单编辑变体）":
+    try:
+      discard applyEditsToNormalizedContent("abc", @[Edit(oldText: "xyz", newText: "1")], "/tmp/f")
+      check false
+    except ValueError as e:
+      check e.msg == "Could not find the exact text in /tmp/f. The old text must match exactly including all whitespace and newlines."
+
+  test "applyEdits not found 抛错（多编辑变体）":
+    try:
+      discard applyEditsToNormalizedContent("abc", @[
+        Edit(oldText: "a", newText: "1"), Edit(oldText: "xyz", newText: "2")], "/tmp/f")
+      check false
+    except ValueError as e:
+      check "edits[1]" in e.msg
+
+  test "applyEdits duplicate 抛错":
+    try:
+      discard applyEditsToNormalizedContent("a a a", @[Edit(oldText: "a", newText: "b")], "/tmp/f")
+      check false
+    except ValueError as e:
+      check "Found 3 occurrences of the text in /tmp/f" in e.msg
+
+  test "applyEdits overlap 抛错":
+    try:
+      discard applyEditsToNormalizedContent("abcdef", @[
+        Edit(oldText: "abc", newText: "1"), Edit(oldText: "bcd", newText: "2")], "/tmp/f")
+      check false
+    except ValueError as e:
+      check "overlap in /tmp/f" in e.msg
+
+  test "applyEdits no change 抛错":
+    try:
+      discard applyEditsToNormalizedContent("abc", @[Edit(oldText: "abc", newText: "abc")], "/tmp/f")
+      check false
+    except ValueError as e:
+      check "No changes made to /tmp/f" in e.msg
+
+  test "行尾往返 normalizeToLF/restoreLineEndings":
+    check normalizeToLF("a\r\nb") == "a\nb"
+    check restoreLineEndings("a\nb", leCrLf) == "a\r\nb"
+    check restoreLineEndings("a\nb", leLf) == "a\nb"
+
+  test "detectLineEnding":
+    check detectLineEnding("a\r\nb") == leCrLf
+    check detectLineEnding("a\nb") == leLf
+
+  test "applyEdits 模糊替换生效":
+    let res = applyEditsToNormalizedContent("old text  \nkeep", @[Edit(oldText: "old text\nkeep", newText: "new text\nkeep")], "/tmp/f")
+    check res.newContent == "new text\nkeep"
