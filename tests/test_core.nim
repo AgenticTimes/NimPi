@@ -34,6 +34,7 @@ import ../src/systemprompt
 import ../src/editdiff
 import ../src/trust
 import ../src/authstorage
+import ../src/modelconfig
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -1750,3 +1751,44 @@ suite "authstorage":
     check fpUserRead in perms
     check fpUserWrite in perms
     removeFile("/tmp/npi_auth_perm.json")
+
+suite "modelconfig":
+  test "parseModelCost 嵌套解析":
+    let j = parseJson("""{"input": 3.0, "output": 15.0, "cacheRead": 1.5}""")
+    let c = parseModelCost(j)
+    check c.input == 3.0
+    check c.output == 15.0
+    check c.cacheRead == 1.5
+    check c.cacheWrite == 0.0
+
+  test "parseModelDefinition 字段提取":
+    let j = parseJson("""{"id": "claude-x", "name": "Claude X", "contextWindow": 200000, "maxTokens": 16000, "reasoning": true}""")
+    let m = parseModelDefinition(j)
+    check m.id == "claude-x"
+    check m.name == "Claude X"
+    check m.contextWindow == 200000
+    check m.reasoning
+
+  test "缺字段用默认":
+    let j = parseJson("""{"id": "minimal"}""")
+    let m = parseModelDefinition(j)
+    check m.id == "minimal"
+    check m.contextWindow == 0
+    check not m.reasoning
+    check m.cost.input == 0.0
+
+  test "loadModelsJson 加载 + findModel":
+    writeFile("/tmp/npi_models_test.json", """{"models": {"m1": {"contextWindow": 100000}, "m2": {}}}""")
+    let cfg = loadModelsJson("/tmp/npi_models_test.json")
+    check cfg.models.len == 2
+    let m1 = cfg.findModel("m1")
+    check m1.isSome
+    check m1.get.contextWindow == 100000
+    removeFile("/tmp/npi_models_test.json")
+
+  test "contextWindowFor 默认回退":
+    writeFile("/tmp/npi_models_test2.json", """{"models": {"m1": {"contextWindow": 50000}}}""")
+    let cfg = loadModelsJson("/tmp/npi_models_test2.json")
+    check cfg.contextWindowFor("m1") == 50000
+    check cfg.contextWindowFor("missing") == 200000
+    removeFile("/tmp/npi_models_test2.json")
