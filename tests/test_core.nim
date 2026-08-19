@@ -33,6 +33,7 @@ import ../src/outputaccumulator
 import ../src/systemprompt
 import ../src/editdiff
 import ../src/trust
+import ../src/authstorage
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -1710,3 +1711,42 @@ suite "editdiff":
   test "applyEdits 模糊替换生效":
     let res = applyEditsToNormalizedContent("old text  \nkeep", @[Edit(oldText: "old text\nkeep", newText: "new text\nkeep")], "/tmp/f")
     check res.newContent == "new text\nkeep"
+
+suite "authstorage":
+  test "readStoredCredential 无文件返回空":
+    let store = newAuthStorage("/tmp/npi_auth_missing.json")
+    removeFile("/tmp/npi_auth_missing.json")
+    check store.readStoredCredential("openai") == ""
+
+  test "setCredential 写入 + 读取":
+    let store = newAuthStorage("/tmp/npi_auth_test.json")
+    removeFile("/tmp/npi_auth_test.json")
+    store.setCredential("openai", "sk-test")
+    check store.readStoredCredential("openai") == "sk-test"
+
+  test "deleteCredential 删除":
+    let store = newAuthStorage("/tmp/npi_auth_test2.json")
+    removeFile("/tmp/npi_auth_test2.json")
+    store.setCredential("anthropic", "ak-1")
+    store.deleteCredential("anthropic")
+    check store.readStoredCredential("anthropic") == ""
+
+  test "listCredentials 列出":
+    let store = newAuthStorage("/tmp/npi_auth_test3.json")
+    removeFile("/tmp/npi_auth_test3.json")
+    store.setCredential("openai", "k1")
+    store.setCredential("gemini", "k2")
+    let l = store.listCredentials()
+    check l.len == 2
+    check "openai" in l
+    check "gemini" in l
+
+  test "权限 0o600":
+    let store = newAuthStorage("/tmp/npi_auth_perm.json")
+    removeFile("/tmp/npi_auth_perm.json")
+    store.setCredential("x", "k")
+    # owner 可读写
+    let perms = getFilePermissions("/tmp/npi_auth_perm.json")
+    check fpUserRead in perms
+    check fpUserWrite in perms
+    removeFile("/tmp/npi_auth_perm.json")
