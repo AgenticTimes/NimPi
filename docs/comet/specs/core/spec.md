@@ -1,24 +1,21 @@
-# NPI Attribution — Specification
+# NPI Headers — Specification
 
 ## 目标
-为 npi 实现 provider 归属判定与 attribution header 生成（对齐 pi provider-attribution.ts）。
+为 npi 补全 header 解析（对齐 pi resolveHeaders）：配置的 header 表用 resolveConfigValue 逐项解析。
 
 ## 范围
-- `src/attribution.nim`：
-  - `matchesHost(baseUrl, expectedHost)`：解析 host 匹配（简化，字符串包含）
-  - 归属判定：isOpenRouter/isNvidiaNim/isCloudflare/isOpenCode（provider 名或 baseUrl host）
-  - `mergeProviderAttributionHeaders(provider, baseUrl, sessionId, enabled)`：合并归属 header
-- 接入：llm 请求头（可选，enabled 开关）
+- `src/headers.nim`（或增强 configvalue.nim）：
+  - `resolveHeaders(headers, env)`：逐项 resolve，空值跳过，全空返回 undefined
+  - `clearConfigValueCache()`：清命令缓存
+- 复用 configvalue.nim 的 resolveConfigValue/命令缓存
 
 ## 非目标
-- URL 严格解析 —— host 包含匹配
-- telemetry 设置集成 —— enabled 参数
+- resolveHeadersOrThrow —— 简化，无 throw 版本
+- header 大小写规范化 —— 保持原样
 
 ## 验收
-- [ ] matchesHost 判定
-- [ ] openrouter 归属 + header
-- [ ] nvidia 归属 + header
-- [ ] cloudflare 归属 + header
-- [ ] opencode session header
-- [ ] 未启用/未知 provider 无 header
+- [ ] resolveHeaders 逐项解析
+- [ ] 空值跳过
+- [ ] 全空返回空
+- [ ] clearConfigValueCache 清缓存
 - [ ] 单测覆盖
