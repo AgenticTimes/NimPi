@@ -12,6 +12,8 @@ import ./grep
 import ./find
 import ./lsdir
 import ./bashtimeout
+import ./usagetotals
+import ./cachestats
 
 type
   ToolResultRaw* = tuple
@@ -36,6 +38,9 @@ type
     callbacks*: AgentCallbacks
     systemPromptCache*: string
     eventBus*: EventBus
+    usageTotals*: UsageTotals
+    cacheWaste*: CacheWaste
+    lastRequest*: PreviousRequest
     onComplete*: proc(core: seq[ChatPayload]): void {.closure.}
 
   ChatPayload* = object

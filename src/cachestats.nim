@@ -1,7 +1,7 @@
 ## Prompt 缓存缺失检测：对齐 pi `cache-stats.ts` 核心逻辑（简化版，无成本模型）。
 ## detectMiss 判定每轮请求是否有效利用 prompt cache。
 
-import std/[times, math]
+
 import ./types
 
 const
