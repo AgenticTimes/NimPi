@@ -1,8 +1,6 @@
 ## Settings：对齐 pi `settings-manager.ts` 的 Settings 结构（精简版）。
 ## 核心配置结构 + 默认值 + deepMerge（逐字段递归合并）。
 
-import std/tables
-
 type
   SettingsCompaction* = object
     enabled*: bool            ## 默认 true
