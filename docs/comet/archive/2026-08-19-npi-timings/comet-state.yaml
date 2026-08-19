@@ -1,0 +1,212 @@
+schema: comet.native.v4
+name: npi-timings
+language: zh-CN
+phase: archive
+status: done
+state_version: 8
+brief: brief.md
+spec_changes:
+  - capability: core
+    operation: modify
+    source: specs/core/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/npi-timings
+  target_branch: master
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: specs/core/spec.md
+    text: 为 npi 实现启动/阶段性能计时（对齐 pi timings.ts）：环境变量开关、分段间隔计时、分组输出。
+    result: passed
+    reason:
+      text: 性能计时对齐 pi timings.ts
+      truncated: false
+  - id: A2
+    source: specs/core/spec.md
+    text: "`src/timings.nim`："
+    result: passed
+    reason:
+      text: src/timings.nim：TimingNamespace/reset/time/print
+      truncated: false
+  - id: A3
+    source: specs/core/spec.md
+    text: "`TimingNamespace`：timings 列表 + lastTime"
+    result: passed
+    reason:
+      text: NPI_TIMING 开关
+      truncated: false
+  - id: A4
+    source: specs/core/spec.md
+    text: "`resetTimings(namespace)`、`time(label, namespace)` 间隔计时、`printTimings()`"
+    result: passed
+    reason:
+      text: 未启用 no-op
+      truncated: false
+  - id: A5
+    source: specs/core/spec.md
+    text: 开关：NPI_TIMING=1（对齐 pi PI_TIMING）
+    result: passed
+    reason:
+      text: reset 初始化
+      truncated: false
+  - id: A6
+    source: specs/core/spec.md
+    text: 未启用时全部 no-op
+    result: passed
+    reason:
+      text: time 间隔计时
+      truncated: false
+  - id: A7
+    source: specs/core/spec.md
+    text: 接入：main 里 reset/time 标记关键阶段（可选）
+    result: passed
+    reason:
+      text: printTimings 分组+TOTAL
+      truncated: false
+  - id: A8
+    source: specs/core/spec.md
+    text: "[ ] 未启用时 no-op"
+    result: passed
+    reason:
+      text: namespace 独立
+      truncated: false
+  - id: A9
+    source: specs/core/spec.md
+    text: "[ ] reset 初始化"
+    result: passed
+    reason:
+      text: no-op（单测）
+      truncated: false
+  - id: A10
+    source: specs/core/spec.md
+    text: "[ ] time 记录间隔"
+    result: passed
+    reason:
+      text: 间隔记录（单测）
+      truncated: false
+  - id: A11
+    source: specs/core/spec.md
+    text: "[ ] print 分组输出"
+    result: passed
+    reason:
+      text: namespace 独立（单测）
+      truncated: false
+  - id: A12
+    source: specs/core/spec.md
+    text: "[ ] 单测覆盖"
+    result: passed
+    reason:
+      text: 单测全绿（brew nim comet check 实跑 128 项）
+      truncated: false
+builder_handoff:
+  candidate_id: 1c9a41e5-06d2-4cf1-8ee9-09c80648000f
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:2438072e-f80a-463e-9fd8-ae870f290211
+  iteration: 1
+  summary:
+    text: 实现性能计时对齐 pi timings.ts：NPI_TIMING=1 开关（未启用全
+      no-op）、TimingNamespace(timings+lastTime)、resetTimings/time(间隔计时)/printTimings(分组输出含
+      TOTAL)。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: compiles
+        truncated: false
+      result: passed
+      note:
+        text: nimble build 零错误零警告
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: 128 单测全绿（含 3 个 timings 测试）
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 完整 profiling 待后续
+      truncated: false
+    - text: main 接入可选
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-19T00:18:12.654Z
+blockers: []
+verification:
+  candidate_id: 1c9a41e5-06d2-4cf1-8ee9-09c80648000f
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:35d2d5ef-194e-44fb-9b7b-a805bdb2e900
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: npi-tmg-ut
+      name:
+        text: NPI Timings 单测 (brew nim)
+        truncated: false
+      argv_display:
+        - text: c
+          truncated: false
+        - text: -r
+          truncated: false
+        - text: --hints:off
+          truncated: false
+        - text: --path:/Users/meetai/.nimble/pkgs2/illwill-0.4.1-9c58351502f89a16caf031cbd1992ad3fdfd3c67
+          truncated: false
+        - text: -o:/tmp/npi_tmg_vt
+          truncated: false
+        - text: tests/test_core.nim
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 2109
+  summary:
+    text: NPI Timings 验收全过：comet Runtime 实跑 128 单测 OK。
+    truncated: false
+  risks:
+    - text: 完整 profiling 待后续
+      truncated: false
+    - text: main 接入可选
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-19T00:18:23.403Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: NPI Timings 验收全过：comet Runtime 实跑 128 单测 OK。
+      truncated: false
+    completed_at: 2026-08-19T00:18:23.403Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-19T00:17:02.635Z
