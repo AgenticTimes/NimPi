@@ -1,22 +1,24 @@
-# NPI UsageIntegrate — Specification
+# NPI ConfigValue — Specification
 
 ## 目标
-把 usagetotals/cachestats 接入 agent 运行路径，消除孤岛模块。
+为 npi 实现配置值解析（对齐 pi resolve-config-value.ts）：支持环境变量、shell 命令、字面量的配置模板。
 
 ## 范围
-- `Agent` 增加：`usageTotals: UsageTotals`、`cacheWaste: CacheWaste`、`lastRequest: PreviousRequest`、`usageStartMs: int`
-- runConversation：seEnd 时累计 usageTotals、检测 cache miss（detectMiss + addMiss）、更新 lastRequest
-- 提供 `usageSummary(agent)` 便捷输出
+- `src/configvalue.nim`：
+  - `parseConfigValueTemplate(config)`：解析 `$ENV`、`${ENV}`、`$!cmd`、`$$`/`$!` 字面、混合字面量
+  - `resolveConfigValue(config, env)`：env 查找 + 命令执行（$! 前缀）+ 结果缓存
+  - `getConfigValueEnvVarNames` / `isConfigValueConfigured` / `getMissingConfigValueEnvVarNames`
+- 接入：CLI apiKey 解析可用（可选）
 
 ## 非目标
-- UI 展示 —— 提供数据
-- 成本模型 —— 无
+- 完整 shell 执行安全 —— 命令由用户配置提供
+- resolveHeaders —— 后续
 
 ## 验收
-- [ ] Agent 字段齐全
-- [ ] 每轮 usage 累计
-- [ ] cache miss 检测接入
-- [ ] lastRequest 更新
-- [ ] usageSummary 输出
-- [ ] 现有单测全绿
-- [ ] 集成单测
+- [ ] 解析 $ENV 字面
+- [ ] 解析 ${ENV}
+- [ ] $!cmd 命令执行
+- [ ] $$ / $! 字面转义
+- [ ] 混合模板
+- [ ] env 未配置返回 missing
+- [ ] 单测覆盖
