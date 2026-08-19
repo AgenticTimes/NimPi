@@ -26,6 +26,7 @@ import ../src/configvalue
 import ../src/timings
 import ../src/exec
 import ../src/attribution
+import ../src/diagnostics
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -1052,3 +1053,30 @@ suite "headers":
     discard resolveConfigValue("$!echo cachetest", initTable[string, string]())
     clearConfigValueCache()
     check true
+
+suite "diagnostics":
+  test "warning/error 构造":
+    let w = warning("缺描述", "/path/x.md")
+    check w.kind == dkWarning
+    check w.message == "缺描述"
+    check w.path == "/path/x.md"
+    let e = error("解析失败")
+    check e.kind == dkError
+
+  test "collision 构造 + 描述":
+    let c = ResourceCollision(resourceType: rtSkill, name: "demo",
+      winnerPath: "/u/skills/demo", loserPath: "/p/skills/demo")
+    let d = c.makeCollision()
+    check d.kind == dkCollision
+    check "demo" in d.message
+    check "skill" in d.message
+    check "⚡" in d.describe()
+
+  test "describe 前缀":
+    check "⚠" in warning("x").describe()
+    check "✗" in error("y").describe()
+
+  test "resourceTypeName":
+    check resourceTypeName(rtExtension) == "extension"
+    check resourceTypeName(rtPrompt) == "prompt"
+    check resourceTypeName(rtTheme) == "theme"
