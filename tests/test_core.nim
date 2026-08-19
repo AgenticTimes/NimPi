@@ -27,6 +27,7 @@ import ../src/timings
 import ../src/exec
 import ../src/attribution
 import ../src/diagnostics
+import ../src/settings
 
 suite "types wire":
   test "toWireJson 用户消息":
@@ -1128,3 +1129,43 @@ suite "configintegrate":
       envTable[k] = v
     check resolveConfigValue("pre-$NPI_MIX_TOKEN-post", envTable) == "pre-tok-post"
     delEnv("NPI_MIX_TOKEN")
+
+suite "settings":
+  test "defaultSettings 默认值":
+    let s = defaultSettings()
+    check s.compaction.enabled
+    check s.compaction.reserveTokens == 16384
+    check s.compaction.keepRecentTokens == 20000
+    check s.retry.maxRetries == 3
+    check s.retry.baseDelayMs == 2000
+    check s.terminal.showImages
+    check s.markdown.mermaid == "streaming"
+
+  test "mergeSettings 覆盖标量":
+    let base = defaultSettings()
+    var over = Settings()
+    over.defaultModel = "gpt-4o-mini"
+    over.defaultProvider = "openai"
+    let merged = mergeSettings(base, over)
+    check merged.defaultModel == "gpt-4o-mini"
+    check merged.defaultProvider == "openai"
+    # 未覆盖的保持默认
+    check merged.compaction.reserveTokens == 16384
+
+  test "mergeSettings 嵌套覆盖":
+    let base = defaultSettings()
+    var over = Settings()
+    over.compaction = SettingsCompaction(enabled: true, reserveTokens: 5000, keepRecentTokens: 10000)
+    let merged = mergeSettings(base, over)
+    check merged.compaction.reserveTokens == 5000
+    check merged.compaction.keepRecentTokens == 10000
+    # 未设置的字段保持
+    check merged.retry.maxRetries == 3
+
+  test "mergeSettings retry 覆盖":
+    let base = defaultSettings()
+    var over = Settings()
+    over.retry = RetrySettings(enabled: true, maxRetries: 5, baseDelayMs: 1000)
+    let merged = mergeSettings(base, over)
+    check merged.retry.maxRetries == 5
+    check merged.retry.baseDelayMs == 1000
