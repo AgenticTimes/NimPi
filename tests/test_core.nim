@@ -1831,3 +1831,25 @@ suite "providerconfig":
   test "findProvider 无则 none":
     let cfg = ModelConfig(models: @[], providers: @[], sourcePath: "")
     check cfg.findProvider("nope").isNone
+
+suite "configintegrate2":
+  test "models.json provider baseUrl/apiKey 解析":
+    writeFile("/tmp/npi_cfg2.json", """{"providers": {"openai": {"baseUrl": "https://custom.openai.com", "apiKey": "cfg-key"}}}""")
+    let cfg = loadModelsJson("/tmp/npi_cfg2.json")
+    let p = cfg.findProvider("openai")
+    check p.isSome
+    check p.get.baseUrl == "https://custom.openai.com"
+    check p.get.apiKey == "cfg-key"
+    removeFile("/tmp/npi_cfg2.json")
+
+  test "contextWindowFor 用于 compaction":
+    writeFile("/tmp/npi_cfg2b.json", """{"models": {"gpt-x": {"contextWindow": 128000}}}""")
+    let cfg = loadModelsJson("/tmp/npi_cfg2b.json")
+    check cfg.contextWindowFor("gpt-x") == 128000
+    check cfg.contextWindowFor("unknown") == 200000
+    removeFile("/tmp/npi_cfg2b.json")
+
+  test "provider 配置无则回退默认":
+    let cfg = ModelConfig(models: @[], providers: @[], sourcePath: "")
+    check cfg.findProvider("nope").isNone
+    check cfg.contextWindowFor("nope") == 200000

@@ -18,6 +18,7 @@ import ./usagetotals
 import ./cachestats
 import ./configvalue
 import ./timings
+import ./modelconfig
 import ./trust
 import ./systemprompt
 
@@ -428,9 +429,23 @@ proc main() =
     if effectiveModel.len == 0:
       effectiveModel = defaultModelForProvider(effectiveProvider)
 
+  # 加载 models.json（NPI_MODELS 指定路径），provider 配置的 baseUrl/apiKey 优先
+  var cfgBaseUrl = args.baseUrl
+  var cfgApiKey = args.apiKey
+  let modelsPath = getEnv("NPI_MODELS", "")
+  if modelsPath.len > 0:
+    let cfg = loadModelsJson(modelsPath)
+    let prov = cfg.findProvider(effectiveProvider)
+    if prov.isSome:
+      if prov.get.baseUrl.len > 0: cfgBaseUrl = prov.get.baseUrl
+      if prov.get.apiKey.len > 0: cfgApiKey = prov.get.apiKey
+    # contextWindow 到 compaction
+    if cfg.contextWindowFor(effectiveModel) > 0:
+      agent.compactionSettings.contextWindow = cfg.contextWindowFor(effectiveModel)
+
   let client = newLlmClient(ClientOptions(
     provider: effectiveProvider,
-    apiKey: args.apiKey, baseUrl: args.baseUrl,
+    apiKey: cfgApiKey, baseUrl: cfgBaseUrl,
     model: effectiveModel, timeoutMs: 300000))
   var driver = AgentDriver(client: client, agent: agent, projectTrusted: projectTrusted)
 
