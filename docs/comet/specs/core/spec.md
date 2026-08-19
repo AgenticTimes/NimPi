@@ -1,23 +1,29 @@
-# NPI Fuzzy — Specification
+# NPI TUI Palette — Specification
 
 ## 目标
-把 pi fuzzy.ts 的模糊匹配逻辑完整移植到 Nim（fzf 风格：低分更优）。
+给 npi TUI 加命令面板：`/` 前缀激活 palette 模式，fuzzy 过滤命令，↑/↓ 选择，Enter 确认选中。
 
 ## 范围
-- `src/fuzzy.nim`：
-  - `FuzzyMatch`（matches/score）
-  - `fuzzyMatch(query, text)`：小写、顺序子序列；连续奖励 -5/个、间隙惩罚 +2/char、词边界 -10、位置 +0.1*i、完全匹配 -100；字母数字交换变体
-  - `fuzzyFilter[T](items, query, getText)`：空白/slash token 化，全 token 匹配才保留，按总分升序
+- `src/tui.nim` 扩展：
+  - `Tui` 加 `commands*: seq[string]`、`paletteMode*: bool`、`paletteIndex*: int`
+  - `setCommands(tui, cmds)`：设置可用命令
+  - `/` 输入进入 palette（paletteQuery = input[1..]）
+  - palette 模式渲染：fuzzy 过滤命令列表，当前选择高亮，状态行显示"命令面板"
+  - ↑/↓ 在 palette 列表中移动选择
+  - Enter：palette 模式选中命令（输入框显示 `/命令`），退出 palette
+  - Esc（evQuit 之外）：退出 palette 清空输入？→ 退出 palette 保留输入
+  - `paletteMatches(tui): seq[string]`：当前 fuzzy 匹配结果（供测试/消费）
+- 单测：fuzzy 过滤、选择移动、Enter 确认、Esc 退出
 
 ## 非目标
-- TUI 接入（选择器/命令面板）—— 后续 change
+- 完整命令执行链路（slash 模块已有，agent 循环消费）—— 调用方对接
+- TUI 重构
 
 ## 验收
-- [ ] 空 query 匹配 score 0
-- [ ] 顺序子序列匹配
-- [ ] 顺序错误不匹配
-- [ ] 完全匹配最低分
-- [ ] 字母数字交换变体
-- [ ] token 过滤（多 token 全匹配）
-- [ ] 排序（最优在前）
-- [ ] 单测覆盖
+- [ ] setCommands 生效
+- [ ] / 进入 palette 模式
+- [ ] palette 渲染 fuzzy 过滤列表
+- [ ] ↑/↓ 选择移动
+- [ ] Enter 确认选中
+- [ ] Esc 退出 palette
+- [ ] 现有单测全绿
