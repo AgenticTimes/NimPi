@@ -1,7 +1,7 @@
 ## auth.json 凭据存储：对齐 pi `auth-storage.ts` 核心语义。
 ## AuthStorage：凭据文件读写（0o600 权限）+ readStoredCredential/set/delete/list。
 
-import std/[os, json, tables, strutils]
+import std/[os, json, strutils]
 
 type
   AuthStorage* = object
